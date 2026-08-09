@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "_note": "Product identity and the official external destinations. EDITED MANUALLY — the running application has no write route for this file, so it can never change what these point at. OWNERSHIP: the MORE menu reads every link here (feedback -> Report & Feedback, website -> Official Website, github -> GitHub, discord -> Join Discord, support -> Support Aether Library); About reads only description, website and copyright. An empty or invalid link simply disables its MORE entry. This is GLOBAL product data: never Scene data, never World data, never part of a preset — a Scene or preset must not be able to repoint an official link. 'contact' is the legacy name for 'feedback' and is read only when feedback is absent. The app version is NOT here: it comes from package.json.",
+  "links": {
+    "website": "https://aetherlibrary.app",
+    "feedback": "https://forms.gle/iGkDLfqnhZqMyUag6",
+    "github": "https://github.com/aetherlibrary/aether-library",
+    "discord": "https://discord.gg/Gc9BR5wmt",
+    "support": "https://ko-fi.com/kazchang"
+  },
+  "copyright": "© 2026 Kaz Chang. All rights reserved.",
+  "description": {
+    "en": "A local-first reasoning workspace: several AI Scholars consider your question, a Grand Sage brings their answers together, and anything worth keeping is saved to your own Vault.",
+    "zh-TW": "一個以本機為主的思考空間：多位 AI 學者思索您的問題，大智者統整他們的答案，值得保留的內容則存入您自己的 Vault。"
+  },
+  "learn": "default"
+}

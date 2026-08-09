@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "rules": [
+    { "when": "vault_gathering", "play": true, "speed": 1.0 },
+    { "when": "scholar_thinking", "play": true, "speed": 1.5 },
+    { "when": "scholar_answering", "play": true, "speed": 2.0 },
+    { "when": "grand_sage_gathering", "play": true, "speed": 2.0 },
+    { "when": "grand_sage_answering", "play": false },
+    { "when": "post_answering", "play": false }
+  ]
+}

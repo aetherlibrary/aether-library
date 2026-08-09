@@ -1,0 +1,31 @@
+{
+  "version": 1,
+  "id": "classic",
+  "displayName": {
+    "en": "Classic",
+    "zh-TW": "經典圖書館"
+  },
+  "identity": {
+    "grand_sage": {
+      "en": "Grand Sage",
+      "zh-TW": "大智者"
+    },
+    "alpha": {
+      "en": "Architect",
+      "zh-TW": "謀者"
+    },
+    "beta": {
+      "en": "Oracle",
+      "zh-TW": "墨者"
+    },
+    "gamma": {
+      "en": "Analyst",
+      "zh-TW": "理者"
+    }
+  },
+  "library": {
+    "libraryName": "Aether Library",
+    "travelerName": "",
+    "traveler2Name": ""
+  }
+}

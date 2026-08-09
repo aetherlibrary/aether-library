@@ -1,0 +1,934 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Aether Library</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <!-- ============================================================ Start Menu
+       First screen: title, version, credit, and the two entry actions. Enter
+       Library appears once a Vault is connected. The background art is
+       authored (config/app-shell.json -> --start-bg-url), never hardcoded
+       here or in CSS. -->
+  <div id="start-menu">
+    <div class="start-backdrop" aria-hidden="true"></div>
+    <!-- FUTURE LOGO / SYMBOL. Not the title any more: a rasterized title reads
+         soft once scaled, so the wordmark below is live HTML text again. This
+         element and its whole F8 pipeline (import, dropdown, Reveal, Clear,
+         X/Y placement) stay in place for the logo that will eventually replace
+         the text — see applyStartMenuTitle() in app.js.
+
+         A DIRECT CHILD of #start-menu, not of .start-content: it is positioned
+         against the whole 1920×1080 canvas that startMenuTitleX/Y are authored
+         in, so changing the art can never shift the buttons. -->
+    <!-- Decorative icon layer. A SEPARATE element from the title image below,
+         and deliberately earlier in the DOM so it composites underneath it.
+         It takes part in no replacement logic: nothing else on the Start Menu
+         changes because an icon is or is not configured. -->
+    <img id="start-icon-image" alt="" draggable="false" hidden />
+    <img id="start-title-image" alt="" draggable="false" hidden />
+    <div class="start-content">
+      <!-- The wordmark is TEXT, so it stays crisp at any window size. -->
+      <h1 class="start-title" id="start-title">Aether Library</h1>
+      <!-- Brand statement (identical in every locale) — a quiet subtitle,
+           not a headline. -->
+      <p class="start-subtitle" id="start-subtitle">A Nexus for Explorers</p>
+      <!-- All button text below is the English default; localizeStaticUI()
+           (app.js) re-writes every label from the active locale pack. -->
+      <div class="start-buttons">
+        <button id="start-enter" type="button" class="pixel-btn start-btn primary" hidden>Enter Library</button>
+        <button id="start-connect" type="button" class="pixel-btn start-btn">Connect Vault</button>
+        <button id="start-settings" type="button" class="pixel-btn start-btn">Settings</button>
+      </div>
+    </div>
+    <!-- Unobtrusive corner details, title-screen style. -->
+    <div class="start-version">v1.0.0</div>
+    <div class="start-copyright" id="start-copyright">© 2026 Kaz Chang. All rights reserved.</div>
+  </div>
+
+  <!-- ============================================================= App Shell
+       Main UI (game_UI.png reference): library scene left (~75%), chat panel
+       right (~25%). Archives swaps in over the whole layout as before. -->
+  <div id="app-shell" hidden>
+    <div id="library-view" class="main-layout">
+
+      <!-- Left: the library scene -->
+      <section id="library-panel" class="panel-frame">
+        <div class="lib-nav">
+          <button id="open-settings" type="button" class="pixel-btn">Settings</button>
+          <!-- First-run AI setup hint. A sibling of the button, never a child:
+               localizeStaticUI() rewrites #open-settings's textContent, which
+               would destroy any element nested inside it. Hidden until the
+               guidance actually applies (see maybeShowAiSetupHint in app.js). -->
+          <div class="ai-hint" id="ai-setup-hint" role="status" hidden>
+            <span id="ai-setup-hint-text">Connect your first AI Provider</span>
+            <button type="button" id="ai-setup-hint-dismiss" class="ai-hint-dismiss" aria-label="Dismiss">×</button>
+          </div>
+          <!-- AI Config: a TOP-LEVEL sibling of Settings, not a tab inside it.
+               Same .pixel-btn treatment as Settings/Archives. -->
+          <button id="open-ai-config" type="button" class="pixel-btn">AI Config</button>
+          <button id="open-archives" type="button" class="pixel-btn">Archives</button>
+          <div class="vault-control" id="vault-control">
+            <button id="vault-connect-btn" type="button" class="pixel-btn" hidden>Connect Vault</button>
+            <div class="vault-split" id="vault-split" hidden>
+              <button id="vault-open-btn" type="button" title="Open Vault folder">VAULT</button>
+              <button id="vault-menu-toggle" type="button" class="vault-caret" aria-haspopup="true" aria-expanded="false" aria-label="Vault menu">▾</button>
+            </div>
+            <!-- The built-in Vault is the primary knowledge system; the
+                 Obsidian section below is an OPTIONAL integration with two
+                 states (Off: just the enable action; On: path + change +
+                 disable). The app is fully functional without ever using it. -->
+            <div class="vault-menu" id="vault-menu" hidden role="menu">
+              <button type="button" id="vault-menu-open" role="menuitem">Open Vault</button>
+              <button type="button" id="vault-menu-copy" role="menuitem">Copy Vault Path</button>
+              <button type="button" id="vault-menu-change" role="menuitem">Change Vault Location...</button>
+              <hr />
+              <div class="vault-menu-status">
+                <span class="muted" id="obsidian-integration-label">Obsidian Integration</span>
+                <b id="obsidian-integration-state">Off</b>
+              </div>
+              <div class="vault-menu-detail" id="vault-menu-obsidian-detail" hidden>
+                <span class="muted" id="vault-menu-obsidian-label">Obsidian Vault</span>
+                <span id="vault-menu-obsidian-path" class="vault-menu-path"></span>
+              </div>
+              <button type="button" id="vault-menu-obsidian-enable" role="menuitem">Enable Obsidian Integration</button>
+              <button type="button" id="vault-menu-obsidian-change" role="menuitem" hidden>Change Obsidian Vault...</button>
+              <button type="button" id="vault-menu-obsidian-disable" role="menuitem" hidden>Disable Obsidian Integration</button>
+              <hr />
+              <button type="button" id="vault-menu-refresh" role="menuitem">Refresh</button>
+              <div class="vault-menu-footer">
+                <span class="muted" id="vault-menu-current-label">Current Vault</span>
+                <span id="vault-menu-path" class="vault-menu-path"></span>
+              </div>
+            </div>
+          </div>
+
+          <!-- MORE menu (Batch B). Deliberately reuses the Vault dropdown's
+               own structure and classes (.vault-control / .vault-menu) so it
+               inherits that panel's exact Classic styling and behaviour
+               rather than introducing a second menu aesthetic. External
+               entries are disabled when their URL is still a placeholder —
+               see src/services/appLinks.js. -->
+          <div class="vault-control" id="more-control">
+            <div class="vault-split">
+              <button id="more-toggle" type="button" aria-haspopup="true" aria-expanded="false">MORE</button>
+              <button id="more-caret" type="button" class="vault-caret" aria-hidden="true" tabindex="-1">▾</button>
+            </div>
+            <div class="vault-menu" id="more-menu" hidden role="menu">
+              <!-- In-app guidance first, then every EXTERNAL destination
+                   (each one a link from config/product.json), then About.
+                   MORE owns all outbound actions; About shows identity and
+                   legal information only. -->
+              <button type="button" id="more-tutorial" role="menuitem">Tutorial</button>
+              <button type="button" id="more-learn" role="menuitem">Learn</button>
+              <hr />
+              <button type="button" id="more-report" role="menuitem">Report &amp; Feedback</button>
+              <button type="button" id="more-website" role="menuitem">Official Website</button>
+              <button type="button" id="more-github" role="menuitem">GitHub</button>
+              <button type="button" id="more-discord" role="menuitem">Join Discord</button>
+              <button type="button" id="more-support" role="menuitem">Support Aether Library</button>
+              <hr />
+              <button type="button" id="more-about" role="menuitem">About</button>
+            </div>
+          </div>
+        </div>
+
+        <button id="lib-fullscreen" type="button" class="fs-btn" title="Fullscreen library" aria-pressed="false">⛶</button>
+
+        <div class="library-stage">
+          <div class="library-scene">
+            <img id="library-bg" alt="" draggable="false" /><!-- src set from ASSETS (assets.js) -->
+            <!-- Scene objects (NPCs & props — Omega, the podium, …) are
+                 inserted here by placeSceneObjects() (app.js), between the
+                 background image and the interactive hotspots. -->
+            <!-- The book on the council table: the session entry point.
+                 Production art: assets/props/core_book.png. This button is
+                 the keyboard-focus surface and the fixed CLICK REGION — but
+                 NOT a pointer-hit target (pointer-events:none, style.css) —
+                 a separate, genuine Scene Object <img> (instance_id
+                 "core_book_01", see placeSceneObjects()/loadSceneProps() in
+                 app.js) renders the actual art AND its own hover behavior at
+                 the identical position, positioned from the SAME
+                 scene-config data every other prop uses, so the F8 Scene
+                 Editor's generic Props/Scene Objects/selection code (which
+                 requires a real <img> with naturalWidth) recognizes it with
+                 no special-casing. Both are pinned to the identical
+                 position, so this always reads as one book, never two.
+
+                 The float+glow hover animation this button used to own
+                 directly (a decorative .book-sprite child span, styled
+                 purely in CSS) has been REMOVED — that was the old
+                 hardcoded "ghost book": a second, non-Scene-Object visual
+                 layer, unselectable/undeletable in the editor. core_book_01
+                 now carries the same hover behavior as authored
+                 playerInteraction data (see applyPlayerInteractionStyle()/
+                 .pi-fx-* in app.js + style.css) — it works because it HAS
+                 that data, not because its id is special. This button is a
+                 plain, invisible click/focus target with no visual content
+                 of its own.
+
+                 pointer-events:none (a later fix, see style.css's .book-
+                 hotspot rule): this button used to sit pointer-events:auto
+                 at the SAME z-index as core_book_01's own <img>, and DOM
+                 order (this button is last) broke the tie in its favor —
+                 silently swallowing that Prop's `:hover` any time the book
+                 sat at/near this fixed spot. app.js restores click-to-start
+                 for mouse/touch via a delegated listener on .library-scene
+                 that tests this exact fixed geometry directly, independent
+                 of whatever DOM element the pointer event actually hit. -->
+            <button id="book-hotspot" type="button" class="book-hotspot" aria-label="Start a conversation" title="Start a conversation"></button>
+          </div>
+        </div>
+
+        <!-- Library Activity: a generic, in-world notification for
+             background activity happening in the library — Librarian
+             retrieval today, future Scholar/Grand Sage/Historian/NPC
+             activity later (see showLibraryActivity() in app.js). Compact,
+             bottom-right, fades in/out on its own; never blocks gameplay.
+             A descendant of #library-panel, so it's automatically hidden in
+             Chat Fullscreen along with the rest of the library world
+             (body.chat-full #library-panel { display:none }) — the
+             retrieval status fallback for that mode lives in the
+             conversation panel instead (#librarian-status). -->
+        <div class="library-activity" id="library-activity" aria-live="polite">
+          <div class="library-activity-title">
+            <span id="library-activity-icon" aria-hidden="true">📖</span>
+            <span id="library-activity-title-label">Library Activity</span>
+          </div>
+          <div class="library-activity-body" id="library-activity-body"></div>
+        </div>
+      </section>
+
+      <!-- Draggable boundary between the library scene and the workspace —
+           production counterpart to the F8 Scene Editor's own
+           #se-resize-divider (devtools/scene-editor.css/.js): same
+           zero-footprint negative-margin technique, but fully independent
+           state/DOM — see initAppSplitDivider() in app.js. Session-only:
+           never persisted, never touches Scene Config. Hidden whenever
+           there aren't two side-by-side panels to resize (in-app
+           fullscreen, the ≤900px stacked layout, or F8 active — F8 owns its
+           own divider then). The hover/drag affordance is the CURSOR itself
+           (assets/ui/separator_vertical.png, via buildAppSplitCursor() in
+           app.js) plus the gold .asd-line — no separate floating icon
+           element, so there's only one child here. -->
+      <div
+        class="app-split-divider"
+        id="app-split-divider"
+        role="separator"
+        aria-orientation="vertical"
+        aria-label="Resize library and workspace panels"
+        tabindex="-1"
+      >
+        <span class="asd-line" aria-hidden="true"></span>
+      </div>
+
+      <!-- Right: scholar tabs, response panel, session controls, composer -->
+      <section id="chat-panel" class="panel-frame">
+        <button id="chat-fullscreen" type="button" class="fs-btn" title="Fullscreen chat" aria-pressed="false">⛶</button>
+
+        <div class="tabs" id="tabs" role="tablist"><!-- generated per participating scholar --></div>
+
+        <!-- Session Header: identity of the active Session (compact strip),
+             plus Save to Vault (and, once saved, the Obsidian export
+             controls) in its upper-right — visible only once the Session has
+             produced a real answer to save. -->
+        <section class="session-header" id="session-header" hidden>
+          <!-- Row 1: title + Save to Vault. .sh-question is the primary
+               content — see style.css for why it must never be squeezed by
+               its flex-shrink:0 sibling into vertical one-character
+               wrapping. -->
+          <div class="sh-top">
+            <div class="sh-question" id="sh-question"></div>
+            <div class="sh-save-area">
+              <button type="button" id="save-vault" class="sh-save-btn" hidden>Save to Vault</button>
+            </div>
+          </div>
+          <!-- The INITIAL question's own attachments (session.attachments) —
+               follow-up attachments live on their own chat turns instead
+               (see renderTurnAttachments() in app.js). Hidden when empty. -->
+          <div class="turn-attachments" id="sh-attachments" hidden></div>
+          <!-- Row 2: session metadata. -->
+          <div class="sh-meta">
+            <span class="sh-item"><span id="sh-label-session">Session</span> <code id="sh-id">—</code></span>
+            <span class="sh-item"><span id="sh-label-mode">Mode</span> <b id="sh-mode">—</b></span>
+            <span class="sh-item"><span id="sh-label-status">Status</span> <b id="sh-status" class="badge">—</b></span>
+            <span class="sh-item"><span id="sh-label-vault">Vault</span> <b id="sh-vault" class="badge">—</b></span>
+            <span class="sh-item"><span id="sh-label-scholars">Scholars</span> <b id="sh-count">—</b></span>
+          </div>
+          <!-- Row 3: the Save status/path message — its own full-width row
+               (moved out of .sh-top, see style.css), so an arbitrarily long
+               saved-file path can never compete with the title for
+               horizontal space. Collapses to nothing (:empty) before the
+               first save. -->
+          <span id="session-msg" class="muted sh-save-msg"></span>
+          <!-- OPTIONAL Obsidian export: an inline, non-blocking secondary
+               action shown only after a native Vault save succeeds AND the
+               Obsidian integration is enabled. Never a modal. -->
+          <div class="obsidian-export-row" id="obsidian-export-row" hidden>
+            <button type="button" id="export-obsidian">Export to Obsidian</button>
+            <label class="auto-export-label" id="auto-export-label">
+              <input type="checkbox" id="auto-export-chk" />
+              <span id="auto-export-text">Automatically export to Obsidian as well</span>
+            </label>
+          </div>
+        </section>
+
+        <!-- Conversation: ONE continuous workspace, split top/bottom by a
+             single VS-Code/Obsidian-style divider (#workspace-divider) that
+             resizes both halves together — see initWorkspaceDivider() in
+             app.js. Top = Session Summary + Conversation, sharing ONE
+             scrollbar; bottom = the locked Mode/Scholar controls, the one
+             persistent input, Quick Questions, and Reset/Send. -->
+        <section class="conversation pre-session" id="conversation">
+          <!-- TOP: Session Summary (collapsible — see setSessionSummaryExpanded()
+               in app.js) + the running Conversation thread, in ONE scrollable
+               region. No secondary answer box is ever created: every
+               follow-up reply is appended to #chat-log, right here. -->
+          <div class="discussion-workspace" id="discussion-workspace">
+            <!-- Empty/loading state: shown before a Session exists AND while
+                 the first question is still in flight. Session Summary is
+                 not created until the first successful response (see
+                 maybeRevealSessionSummary() in app.js) — until then this is
+                 the only thing in the discussion workspace. -->
+            <!-- Both lines are filled from the locale by
+                 refreshDiscussionEmptyText() — deliberately EMPTY here so no
+                 English is hardcoded and a zh-TW user never sees an English
+                 flash. #discussion-welcome is the idle greeting and is hidden
+                 while a run is in flight; #discussion-hint carries either the
+                 secondary instruction or the run progress message. -->
+            <div class="discussion-empty" id="discussion-empty">
+              <p class="discussion-empty-welcome" id="discussion-welcome"></p>
+              <p class="discussion-empty-hint" id="discussion-hint"></p>
+            </div>
+            <!-- Fatal-run-failure state: shown instead of the "waiting"
+                 placeholder when NO Scholar/Judge produced anything usable at
+                 all (see the !anyTabOk branch in startSessionRun(), app.js).
+                 A partial failure (some Scholars ok) never shows this — that
+                 stays a per-tab error only, Session Summary reveals as usual. -->
+            <div class="session-error" id="session-error" hidden>
+              <div class="session-error-title" id="session-error-title">Model unavailable</div>
+              <div class="session-error-message" id="session-error-message">
+                The selected model could not complete this request. Please choose another model and try again, or use
+                Reset to start a new session.
+              </div>
+            </div>
+            <!-- Session lost: the server no longer holds the Session this page
+                 is showing (it restarted since the run — the active Session is
+                 memory-only, see services/sessionEngine.js). The discussion
+                 above STAYS on screen; only the follow-up composer closes,
+                 because there is nothing left for a follow-up to continue.
+                 A Session that reached the Vault was archived under the same
+                 id, so it can be reopened through the existing Continue
+                 Discussion flow — that is what the button below does. See
+                 handleSessionLost()/showSessionLost() in app.js and
+                 services/sessionRecovery.js for the decision itself. -->
+            <div class="session-error session-lost" id="session-lost" hidden>
+              <div class="session-error-title" id="session-lost-title">This discussion is no longer active</div>
+              <div class="session-error-message" id="session-lost-message"></div>
+              <div class="dialog-buttons session-lost-actions">
+                <button type="button" id="session-lost-continue" hidden>Continue in a New Discussion</button>
+                <button type="button" id="session-lost-reset">Start a New Session</button>
+              </div>
+              <div id="session-lost-status" class="archive-sync-msg"></div>
+            </div>
+            <!-- Council Pre-check failure: shown INSTEAD of starting a real
+                 Council when at least one required participant (a Scholar or
+                 the Grand Sage) fails the Council Model Check — see
+                 runCouncilPrecheck()/showCouncilPrecheckError() in app.js.
+                 No Scholar or Grand Sage generation ever starts and no
+                 Session is created, so this is deliberately kept completely
+                 separate from #session-error above (that one is a REAL run's
+                 total-failure state) rather than reused for it. Lives in the
+                 same always-visible #discussion-workspace, so it is visible
+                 with zero real Session/tab bar required — the closest thing
+                 to "the Grand Sage tab" that exists before a Session begins;
+                 activateTab("summary") additionally switches any leftover
+                 tab bar from a previous Session to Grand Sage as well. -->
+            <div class="session-error council-precheck-error" id="council-precheck-error" hidden>
+              <div class="session-error-title" id="council-precheck-error-title">Council could not begin</div>
+              <div id="council-precheck-error-list" class="council-precheck-error-list"><!-- generated in app.js, one row per failed participant --></div>
+              <div class="session-error-message" id="council-precheck-error-footer">No Council responses were generated.</div>
+              <div class="dialog-buttons council-precheck-error-actions">
+                <button type="button" id="council-precheck-retry">Retry Check</button>
+                <button type="button" id="council-precheck-open-settings">Open Settings</button>
+              </div>
+            </div>
+            <div class="session-summary" id="session-summary" hidden>
+              <button
+                type="button"
+                id="session-summary-toggle"
+                class="session-summary-toggle"
+                aria-expanded="true"
+                aria-controls="tab-content"
+              >
+                <span class="ss-caret" id="session-summary-caret" aria-hidden="true">▼</span>
+                <span id="session-summary-label">Session Summary</span>
+              </button>
+              <div class="answer-wrap">
+                <button type="button" id="copy-answer" class="copy-btn" hidden></button>
+                <div class="tab-content answer" id="tab-content">Click the book on the table to begin...</div>
+              </div>
+            </div>
+            <div id="chat-log" class="chat-log" hidden></div>
+          </div>
+
+          <!-- Visible and draggable from the very first entry into this
+               screen, before any Session exists — see initWorkspaceDivider()
+               in app.js. Reset never hides it again; it only clears back to
+               the compact pre-session default ratio. -->
+          <div
+            class="workspace-divider"
+            id="workspace-divider"
+            role="separator"
+            aria-orientation="horizontal"
+            tabindex="-1"
+          >
+            <span class="wd-line" aria-hidden="true"></span>
+            <span class="wd-grip" aria-hidden="true">⋯</span>
+            <span class="wd-line" aria-hidden="true"></span>
+          </div>
+
+          <!-- BOTTOM: locked Mode/Scholar controls, the one persistent
+               input, Quick Questions (bottom-left, below the input), and
+               Reset/Send. -->
+          <div class="interaction-workspace" id="interaction-workspace">
+            <div class="ask-controls">
+              <!-- Interaction modes: Council (1–3 Scholars + Judge synthesis) and
+                   Mentor (one Scholar, focused guidance). The data-mode values
+                   stay "council"/"single" — they are internal session-engine
+                   identifiers, not display names. -->
+              <div class="mode-group">
+                <span class="mode-label-row">
+                  <span class="mode-label" id="mode-label">Mode</span>
+                  <span class="session-lock-icon" id="session-lock-icon" hidden aria-hidden="true">🔒</span>
+                </span>
+                <div class="mode-row">
+                  <div class="mode-toggle" id="mode-toggle" role="radiogroup" aria-label="Interaction mode">
+                    <button type="button" class="mode-btn is-active" data-mode="council" role="radio" aria-checked="true">Council</button>
+                    <button type="button" class="mode-btn" data-mode="single" role="radio" aria-checked="false">Mentor</button>
+                  </div>
+                  <!-- "Use Vault" Session option: on (default) = normal Librarian
+                       retrieval before the Session starts; off = skip the Vault
+                       search entirely for this Session. Locked with Mode/Scholars
+                       once the first question is submitted (see
+                       lockSessionConfig() in app.js). -->
+                  <label class="use-vault-label" id="use-vault-wrap">
+                    <input type="checkbox" id="use-vault-toggle" checked />
+                    <span id="use-vault-label">Use Vault</span>
+                  </label>
+                </div>
+              </div>
+              <div class="scholar-picker" id="scholar-picker"><!-- Scholar cards, generated from config --></div>
+            </div>
+
+            <!-- The one persistent question input for the entire Session: the
+                 first question AND every follow-up both go through this same
+                 textarea + Send button (see handleSend() in app.js). Its
+                 placeholder switches from the mode-specific invite to a
+                 "continue or Reset" hint after the first submission.
+
+                 ONE unified composer frame: the outer .composer div owns the
+                 only visible border/radius/focus state (see style.css). The
+                 textarea is borderless and sits directly inside it; the
+                 bottom toolbar (attach left, Reset/Send right) is a second
+                 flex row in the same container, never a separate framed
+                 wrapper. -->
+            <div class="composer" id="composer">
+              <div class="attachment-list" id="attachment-list" hidden><!-- chips generated in app.js --></div>
+              <textarea id="question" rows="3" placeholder="Present your question..."></textarea>
+              <div class="composer-toolbar">
+                <button type="button" id="attach-btn" class="attach-btn" title="Attach files" aria-label="Attach files">+</button>
+                <div class="composer-toolbar-right">
+                  <button type="button" id="reset-session" class="secondary">Reset</button>
+                  <button id="run-council" type="button">Send</button>
+                </div>
+              </div>
+              <input type="file" id="attach-input" multiple hidden />
+            </div>
+
+            <!-- Quick Questions: bottom-left, below the input. Collapsed by
+                 default. A chip bypasses the input entirely — it appends
+                 straight into the Conversation thread and sends immediately
+                 (see the click handler built in configureChatForMode(),
+                 app.js), then this collapses itself again. -->
+            <div class="quick-actions-wrap" id="quick-actions-wrap" hidden>
+              <button
+                type="button"
+                id="quick-actions-toggle"
+                class="quick-actions-toggle"
+                aria-expanded="false"
+                aria-controls="quick-actions"
+              >
+                <span id="quick-actions-toggle-label">Quick Questions</span>
+                <span class="qa-caret" id="quick-actions-caret" aria-hidden="true">▾</span>
+              </button>
+              <div id="quick-actions" class="quick-actions" hidden><!-- council only, generated in app.js --></div>
+            </div>
+
+            <!-- Reset/Send now live inside the composer toolbar above; this
+                 row is just the Librarian status line beneath Quick
+                 Questions. -->
+            <div class="ask-row">
+              <span id="librarian-status" class="muted"></span>
+            </div>
+          </div>
+        </section>
+      </section>
+    </div>
+
+    <!-- Archives: browsing completed Sessions, separate from the Vault. -->
+    <section class="card archives-view" id="archives-view" hidden>
+      <div id="archives-list-view">
+        <div class="archives-header">
+          <div>
+            <h2 id="archives-title">Archives</h2>
+            <p class="muted" id="archives-subtitle">Previous Council sessions</p>
+          </div>
+          <button type="button" id="archives-back" class="btn-ghost">Back to Library</button>
+        </div>
+        <input type="text" id="archives-search" placeholder="Search archives..." />
+        <div id="archives-list" class="archive-list"><!-- generated in app.js --></div>
+      </div>
+
+      <div id="archive-detail-view" hidden>
+        <button type="button" id="archive-detail-back" class="btn-ghost">Back to Archives</button>
+        <div id="archive-detail-content"><!-- generated in app.js --></div>
+      </div>
+    </section>
+  </div>
+
+  <!-- Mode selection: opened by clicking the book on the council table.
+       "Traveler" is world terminology — untranslated in every locale. -->
+  <dialog id="mode-modal" class="mode-modal">
+    <p class="mode-question">
+      <span id="mode-welcome">Welcome, Traveler.</span><br />
+      <span id="mode-choose">Choose your preferred mode.</span>
+    </p>
+    <div class="mode-buttons">
+      <button type="button" id="mode-council" class="pixel-btn primary">Council</button>
+      <button type="button" id="mode-single" class="pixel-btn">Mentor</button>
+    </div>
+    <!-- AI status (Batch A) — deliberately SECONDARY to the two mode buttons
+         above: small type, muted, no cards or badges. Rendered from the
+         shared read-only helper (src/services/productStatus.js via
+         renderCoreBookAiStatus() in app.js) using config the page already
+         holds, so opening the Core Book performs NO provider API call and
+         never triggers the Council Model Pre-check. "Configured" here means
+         credentials exist — not that a model passed the check. -->
+    <div class="mode-ai-status" id="mode-ai-status">
+      <div class="mode-ai-status-title" id="mode-ai-status-title">AI Status</div>
+      <ul class="mode-ai-list" id="mode-ai-list"></ul>
+      <div class="mode-ai-check" id="mode-ai-check"></div>
+    </div>
+  </dialog>
+
+  <!-- Product Status (Batch A) — informational only, opened from the Grand
+       Sage section of Settings. Same read-only helper as the Core Book
+       status; contacts no provider. -->
+  <dialog id="product-status-dialog">
+    <h2 id="product-status-title">Product Status</h2>
+    <div class="product-status-body">
+      <section class="ps-group">
+        <h3 id="ps-providers-title">AI Providers</h3>
+        <ul class="ps-list" id="ps-providers"></ul>
+      </section>
+      <section class="ps-group">
+        <h3 id="ps-council-title">Council</h3>
+        <ul class="ps-list" id="ps-council"></ul>
+      </section>
+      <section class="ps-group">
+        <h3 id="ps-check-title">Model Check</h3>
+        <ul class="ps-list" id="ps-check"></ul>
+      </section>
+      <section class="ps-group">
+        <h3 id="ps-vault-title">Vault</h3>
+        <ul class="ps-list" id="ps-vault"></ul>
+      </section>
+      <p class="ps-note" id="ps-note"></p>
+    </div>
+    <div class="dialog-buttons">
+      <button type="button" id="product-status-close">Close</button>
+    </div>
+  </dialog>
+
+  <dialog id="settings-dialog">
+    <form id="settings-form">
+      <h2 id="settings-title">Settings</h2>
+
+      <!-- Section 1: General — application settings, independent of any AI
+           setting. Interface Language drives every UI string (buttons, menus,
+           dialogs, tooltips, labels, placeholders, hover cards — never AI
+           responses); Theme drives the application appearance. Future sections
+           (Providers, Advanced, About) are added as sibling fieldsets. -->
+      <fieldset class="settings-section" id="general-section">
+        <legend id="general-title">General</legend>
+        <div class="assign-grid">
+          <label id="gen-lang-label" class="assign-field">Interface Language
+            <!-- Options are built from config.interfaceLanguages (one per
+                 locale file), each labelled with its native name. -->
+            <select name="interfaceLanguage" id="gen-lang"></select>
+          </label>
+          <!-- Default Reply Language: the language EVERY AI response defaults
+               to (Scholars, Grand Sage, Mentor, Quick Questions, follow-ups).
+               A user who names a language in their own prompt overrides it for
+               that request only; the next question starts from this default
+               again. Distinct from Interface Language, which is UI text only
+               and never affects AI output. -->
+          <label id="gen-reply-lang-label" class="assign-field">Default Reply Language
+            <select name="defaultReplyLanguage" id="gen-reply-lang">
+              <option value="zh-TW">繁體中文</option>
+              <option value="en">English</option>
+            </select>
+          </label>
+          <label id="gen-theme-label" class="assign-field">Theme
+            <select name="theme" id="gen-theme">
+              <option value="dark">Dark</option>
+              <option value="light">Light</option>
+            </select>
+          </label>
+        </div>
+      </fieldset>
+      <!-- Section 2: Display — desktop window/display preferences.
+           DELIBERATELY INERT IN THE BROWSER. The controls are rendered so the
+           shape of the setting is fixed now, but they stay disabled until a
+           desktop shell is present (see desktopShell() in app.js). Faking
+           window modes with browser fullscreen would build behaviour the
+           packaged app would then have to unpick. -->
+      <fieldset class="settings-section" id="display-section">
+        <legend id="display-title">Display</legend>
+        <div class="assign-grid">
+          <label id="display-window-mode-label" class="assign-field">Window Mode
+            <select name="windowMode" id="display-window-mode" disabled>
+              <option value="windowed">Windowed</option>
+              <option value="fullscreen">Fullscreen</option>
+              <option value="borderless">Borderless Fullscreen</option>
+            </select>
+          </label>
+        </div>
+        <p class="muted" id="display-unavailable-note">Available in the desktop app.</p>
+      </fieldset>
+
+
+
+
+
+
+      <p id="settings-error" class="error-text" hidden></p>
+      <div class="dialog-buttons">
+        <button type="button" id="settings-cancel">Cancel</button>
+        <button type="submit" id="settings-save">Save</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- ====================================================== AI Config
+       A SEPARATE top-level modal, not a Settings tab. The fieldsets below were
+       MOVED here verbatim from the Settings form; every control keeps its id,
+       so saveSettings() — which reads cached element references rather than
+       FormData — still builds one payload and posts to one route. There is no
+       second store and no second source of truth. -->
+  <dialog id="ai-config-dialog">
+    <form id="ai-config-form">
+      <h2 id="ai-config-title">AI Config</h2>
+      <!-- Section 2: API Providers (compact toggles; enabled ones expand) -->
+      <fieldset class="settings-section" id="providers-section">
+        <legend id="api-providers-title">API Providers</legend>
+        <div class="provider-toggles" id="provider-toggles"><!-- generated --></div>
+        <div class="provider-panels" id="provider-panels"><!-- generated --></div>
+      </fieldset>
+
+      <!-- Section 3: Council Model Check — the automatic-pre-check preference
+           (see Council Model Pre-check spec §6/§15). Persisted through the
+           SAME settings/.env.local path as every other setting here
+           (COUNCIL_AUTO_CHECK — see settings.js); read directly off this
+           checkbox in saveSettings() (app.js), same pattern as the Scholar
+           enabled checkboxes below, not native form serialization. -->
+      <fieldset class="settings-section" id="council-check-settings-section">
+        <legend id="council-check-settings-title">Council Model Check</legend>
+        <label class="council-check-auto-label" id="council-check-settings-auto-wrap">
+          <input type="checkbox" id="council-check-settings-auto-chk" />
+          <span id="council-check-settings-auto-text">Automatically perform a minimal API check before starting Council sessions</span>
+        </label>
+        <p class="assign-status" id="council-check-settings-desc">Helps detect model availability, API access, authentication, and billing issues before generation begins. Each check sends a minimal API request and may incur a small charge.</p>
+        <p class="assign-status" id="council-check-settings-cost">Approx. cost: typically &lt; $0.01 per check.</p>
+        <!-- Manual check: tests the CURRENTLY SAVED Grand Sage + Scholar
+             configuration on demand, independent of councilAutoCheck and
+             never opening the first-time Model Check dialog or starting a
+             Session — see runManualCouncilCheck() in app.js. Reuses the
+             exact same POST /api/council/precheck the Send-flow gate uses;
+             results render in #council-check-manual-result, right below,
+             never in the Grand-Sage-tab #council-precheck-error block
+             (that surface is Send-flow only). -->
+        <button type="button" id="council-check-manual-btn" class="refresh-models">Check Models Now</button>
+        <div id="council-check-manual-result" class="council-check-manual-result" hidden></div>
+      </fieldset>
+
+      <!-- Section 4: Grand Sage (Judge provider + model). The reply language
+           is NOT here — it is application-wide, in General above. -->
+      <fieldset class="settings-section" id="grand-sage-section">
+        <legend id="grand-sage-title">Grand Sage</legend>
+        <div class="assign-grid">
+          <label id="gs-provider-label" class="assign-field">Provider
+            <select name="judgeProvider" id="gs-provider"></select>
+          </label>
+          <label id="gs-model-label" class="assign-field">Model
+            <select name="judgeModel" id="gs-model"></select>
+          </label>
+        </div>
+        <p class="assign-status" id="gs-status"></p>
+        <!-- Product Status entry point (Batch A). Lives in the Grand Sage
+             section per spec; opens a read-only summary, never a check. -->
+        <div class="assign-row-actions">
+          <button type="button" id="open-product-status">View Product Status</button>
+        </div>
+      </fieldset>
+
+      <!-- Section 5: Scholar Assignment (three fixed slots) -->
+      <fieldset class="settings-section" id="scholar-section">
+        <legend id="scholar-assignment-title">Scholar Assignment</legend>
+        <div id="scholar-rows"><!-- generated --></div>
+      </fieldset>
+      <p id="ai-config-error" class="error-text" hidden></p>
+      <div class="dialog-buttons">
+        <button type="button" id="ai-config-cancel">Cancel</button>
+        <button type="submit" id="ai-config-save">Save</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Reset confirmation: shown only when the active Session has unsaved
+       content (see resetSession() in app.js) — a session already saved to
+       Vault, or no session at all, resets immediately without this dialog.
+       Reset itself is completely unchanged; this only guards the entry
+       point. Same custom-dialog style as the other confirmations here,
+       never window.confirm. -->
+  <!-- Learn / User Guide (Batch B). One dialog, a section nav on the left and
+       the selected section's prose on the right — all content comes from the
+       locale packs (learnSections in en.js / zh-TW.js), never hardcoded here,
+       so both languages stay in step. -->
+  <dialog id="learn-dialog">
+    <h2 id="learn-title">Learn</h2>
+    <div class="learn-body">
+      <nav class="learn-nav" id="learn-nav" aria-label="Guide sections"></nav>
+      <div class="learn-content" id="learn-content" tabindex="0"></div>
+    </div>
+    <div class="dialog-buttons">
+      <button type="button" id="learn-close">Close</button>
+    </div>
+  </dialog>
+
+  <!-- About (Batch B). Version comes from publicConfig().appVersion, which
+       reads package.json — never a second hardcoded literal. Link rows are
+       omitted entirely when their URL is still a placeholder. -->
+  <dialog id="about-dialog">
+    <h2 id="about-title">About</h2>
+    <p class="about-product" id="about-product">Aether Library</p>
+    <p class="muted" id="about-version"></p>
+    <p class="muted" id="about-description"></p>
+    <!-- The ONE outbound line About keeps: the product's own website. Every
+         other external destination lives in MORE. -->
+    <p class="muted about-website" id="about-website" hidden></p>
+    <p class="muted about-attribution" id="about-attribution"></p>
+    <div class="dialog-buttons">
+      <button type="button" id="about-close">Close</button>
+    </div>
+  </dialog>
+
+  <!-- Tutorial (Batch B). A dim overlay, a cut-out ring highlighting the
+       current step's target, and a callout. Plain DOM + CSS — no animation
+       library, no dependency. When a step's target element is missing the
+       callout simply centres itself (see positionTutorial() in app.js), so a
+       changed/absent element can never trap the player. -->
+  <div id="tutorial-overlay" hidden>
+    <div id="tutorial-dim"></div>
+    <div id="tutorial-ring" hidden></div>
+    <div id="tutorial-callout" role="dialog" aria-modal="true" aria-labelledby="tutorial-heading">
+      <div class="tutorial-step-count" id="tutorial-step-count"></div>
+      <h3 id="tutorial-heading"></h3>
+      <!-- Optional per-step preview image (F8 UI > Tutorial). Hidden unless a
+           step configures one, and hidden again if it fails to load — it must
+           never block the navigation buttons below. -->
+      <img id="tutorial-image" alt="" hidden />
+      <p id="tutorial-body"></p>
+      <div class="tutorial-actions">
+        <button type="button" id="tutorial-skip"></button>
+        <span class="tutorial-spacer"></span>
+        <button type="button" id="tutorial-back"></button>
+        <button type="button" id="tutorial-next" class="primary"></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Clicking the Core Book with no provider configured. Not a wizard and
+       not a block: it explains what is missing and offers the two obvious
+       ways forward. "Later" simply closes. -->
+  <dialog id="ai-setup-dialog">
+    <h2 id="ai-setup-title">AI Provider Required</h2>
+    <p class="muted" id="ai-setup-body1">No AI providers have been configured yet.</p>
+    <p class="muted" id="ai-setup-body2">
+      Connect your first AI provider in Settings to begin conversations.
+    </p>
+    <div class="dialog-buttons">
+      <button type="button" id="ai-setup-later">Later</button>
+      <button type="button" id="ai-setup-open-settings">Open Settings</button>
+    </div>
+  </dialog>
+
+  <dialog id="reset-confirm-dialog">
+    <h2 id="reset-confirm-title">Reset Session?</h2>
+    <p class="muted" id="reset-confirm-body1">Your current conversation has not been saved to Vault.</p>
+    <p class="muted" id="reset-confirm-body2">Resetting will permanently discard all unsaved content.</p>
+    <div class="dialog-buttons">
+      <button type="button" id="reset-confirm-cancel">Cancel</button>
+      <button type="button" id="reset-confirm-confirm">Reset</button>
+    </div>
+  </dialog>
+
+  <!-- Model-failure pre-send warning: shown only when one or more of the
+       models about to be used (participating Scholars + the Judge in Council
+       mode) has a real generation-failure record inside the 24-hour warning
+       window (see isRuntimeUnavailable()/confirmModelFailureWarning() in
+       app.js). The model is never blocked or auto-switched — this only asks
+       before spending an attempt on something recently confirmed broken. -->
+  <!-- Council Model Check: shown intercepting Send, before the real Council
+       starts, only on the first-ever Council send, when the Council
+       provider/model configuration has changed since the last acknowledged
+       configuration, or when a relevant API key changed — never on an
+       unchanged configuration, and never in Mentor mode (see
+       councilConfigSignature()/startSessionRun() in app.js). "Check & Start"
+       runs a minimal per-participant availability check
+       (POST /api/council/precheck) before the real Council starts;
+       "Start Without Checking" proceeds normally. Either choice
+       acknowledges THIS configuration (no repeat notice until it changes
+       again) — Start Without Checking is never hidden or weakened, this is
+       a recommendation only. The checkbox is the SAME preference as
+       Settings → Council Model Check; checking it here also updates that
+       Settings state. -->
+  <dialog id="council-check-dialog">
+    <h2 id="council-check-title">Council Model Check</h2>
+    <span class="badge badge-recommended" id="council-check-recommended">Recommended</span>
+    <p class="muted" id="council-check-body">
+      Before starting, Aether Library can send a minimal request to each selected model to confirm that it is
+      currently available and accessible with your API account.
+    </p>
+    <p class="muted" id="council-check-help">
+      This can help prevent an incomplete Council session caused by unavailable models, access restrictions, invalid
+      API credentials, insufficient API credits, or other immediate provider errors.
+    </p>
+    <p class="muted" id="council-check-cost">
+      Approx. cost: &lt; $0.01 per check. Actual cost may vary depending on your selected models and provider
+      pricing.
+    </p>
+    <p class="muted" id="council-check-skip-note">
+      If you skip this check, a model may fail after other Scholars have already started generating, potentially
+      wasting time and API credits.
+    </p>
+    <label class="council-check-auto-label" id="council-check-auto-wrap">
+      <input type="checkbox" id="council-check-auto-chk" />
+      <span id="council-check-auto-text">Automatically perform this check before Council sessions</span>
+    </label>
+    <p class="muted" id="council-check-settings-note">You can change this option anytime in Settings.</p>
+    <div class="dialog-buttons">
+      <button type="button" id="council-check-skip">Start Without Checking</button>
+      <button type="button" id="council-check-run" class="primary">Check &amp; Start</button>
+    </div>
+  </dialog>
+
+  <!-- Provider Failure Gate (runtime control): shown when a Scholar fails
+       terminally mid-run and the Grand Sage is being HELD until the player
+       decides. Deliberately not dismissible by Escape or a backdrop click —
+       the run is parked until one of the two buttons is pressed (or Stop is
+       pressed on the composer), so there is no "no answer" outcome to fall
+       back to. Wording is built in app.js from the failed Scholars' names. -->
+  <dialog id="failure-decision-dialog">
+    <h2 id="failure-decision-title">A Scholar did not respond</h2>
+    <p id="failure-decision-body"><!-- generated in app.js --></p>
+    <p class="muted" id="failure-decision-reason"><!-- generated in app.js --></p>
+    <div class="dialog-buttons">
+      <button type="button" id="failure-decision-stop">Stop discussion</button>
+      <button type="button" id="failure-decision-continue">Continue</button>
+    </div>
+  </dialog>
+
+  <dialog id="model-failure-warning-dialog">
+    <h2 id="model-failure-warning-title">Some selected models recently failed</h2>
+    <p class="muted" id="model-failure-warning-message">The following models were unavailable within the past 24 hours:</p>
+    <ul id="model-failure-warning-list"><!-- generated in app.js --></ul>
+    <p id="model-failure-warning-question">Do you still want to continue?</p>
+    <div class="dialog-buttons">
+      <button type="button" id="model-failure-warning-cancel">Cancel</button>
+      <button type="button" id="model-failure-warning-continue">Continue anyway</button>
+    </div>
+  </dialog>
+
+  <!-- Settings changing a Scholar/Judge Provider or Model while a Session is
+       active: once a Session starts, its configuration is fixed until Reset
+       (see lockSessionConfig() in app.js) — this dialog is the ONLY way a
+       Settings save affecting that configuration can proceed, and it always
+       resets first, never applying anything partially (see
+       confirmSettingsSessionChange() in app.js). Wording adapts to whether
+       the active Session has already been saved to Vault. -->
+  <dialog id="settings-session-warning-dialog">
+    <h2 id="settings-session-warning-title">Start a New Session?</h2>
+    <p class="muted" id="settings-session-warning-body1">Changing the Provider or Model will reset the current Session.</p>
+    <p class="muted" id="settings-session-warning-body2">Any content not saved to Vault will be lost.</p>
+    <p class="muted" id="settings-session-warning-body3">The existing Archives record will remain available.</p>
+    <div class="dialog-buttons">
+      <button type="button" id="settings-session-warning-cancel">Cancel</button>
+      <button type="button" id="settings-session-warning-confirm">Reset and Apply</button>
+    </div>
+  </dialog>
+
+  <!-- Read-only preview of one submitted attachment (opened from a chip on a
+       user turn — see openAttachmentPreview() in app.js). Content is whatever
+       safe preview data the Session record persisted: the submitted image, or
+       the same capped extracted text the model saw. Never editable, never a
+       local path, never auto-navigates anywhere. -->
+  <dialog id="attachment-preview-dialog">
+    <h2 id="attachment-preview-title"></h2>
+    <div id="attachment-preview-body" class="attachment-preview-body"><!-- built per attachment in app.js --></div>
+    <div class="dialog-buttons">
+      <button type="button" id="attachment-preview-close">Close</button>
+    </div>
+  </dialog>
+
+  <!-- Removing from Archives only drops the session from the Archive index;
+       Vault / Obsidian files are never touched — the wording says so. -->
+  <dialog id="archive-remove-dialog">
+    <h2 id="archive-remove-title">Remove from Archives?</h2>
+    <p class="muted" id="archive-remove-body1">This session will be removed from the Archive list.</p>
+    <p class="muted" id="archive-remove-body2">Files already saved to Vault or Obsidian will remain untouched.</p>
+    <div class="dialog-buttons">
+      <button type="button" id="archive-remove-cancel">Cancel</button>
+      <button type="button" id="archive-remove-confirm">Remove</button>
+    </div>
+  </dialog>
+
+  <dialog id="vault-confirm-dialog">
+    <h2 id="vault-confirm-title">Change Vault Location</h2>
+    <p class="vault-confirm-label muted" id="vault-confirm-current-label">Current Vault</p>
+    <p class="vault-confirm-path" id="vault-confirm-current"></p>
+    <p class="vault-confirm-label muted" id="vault-confirm-new-label">New Vault</p>
+    <p class="vault-confirm-path" id="vault-confirm-new"></p>
+    <p id="vault-confirm-error" class="error-text" hidden></p>
+    <div class="dialog-buttons">
+      <button type="button" id="vault-confirm-cancel">Cancel</button>
+      <button type="button" id="vault-confirm-use">Use This Folder</button>
+    </div>
+  </dialog>
+
+  <script src="assets.js"></script>
+  <script type="module" src="model-recommendation.js"></script>
+  <!-- Character Bubble runtime (reusable renderer) — before app.js so its
+       globals exist by the time the scene bootstraps; it references app.js
+       state (SCENE_OBJECTS) only at call time, never at load. -->
+  <script src="bubble-renderer.js"></script>
+  <!-- Author Preview: the deterministic completed-Council Workspace used by
+       the first-run Tutorial (Steps 8-9) and, in dev, by F9. Production code
+       with one implementation — see public/author-preview.js. -->
+  <script src="author-preview.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

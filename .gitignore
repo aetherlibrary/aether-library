@@ -1,0 +1,48 @@
+# Secrets — never commit API keys or anything derived from them
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+
+# Dependencies
+node_modules/
+
+# Local Vault contents (VAULT_PATH points outside the repo by default; this
+# guards against a vault ever being pointed inside the project folder).
+/vault/
+
+# Uploaded session materials / scratch attachments, if ever written to disk
+/uploads/
+/tmp/
+*.tmp
+
+# Archived Session records (local history, separate from the Vault), the
+# Default Scene pointer and the Recent Scenes list — all machine-local.
+# The contents are ignored rather than the directory itself: a negation
+# cannot reach inside an ignored DIRECTORY, and scene-layout.json is
+# shipped Scene data, not user data (see the exception below).
+/data/*
+
+# The Classic Library's layout half — Characters, zones, Character Slots and
+# the Role roster. Read in production by services/sceneLayout.js through the
+# always-on /api/scene-layout; without it the Scene renders with no Scholars.
+!/data/scene-layout.json
+
+# Logs
+*.log
+npm-debug.log*
+
+# Build output / test artifacts (none produced today; ignored defensively)
+/dist/
+/build/
+/coverage/
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Editor / local tooling
+.vscode/
+.idea/
+.claude/

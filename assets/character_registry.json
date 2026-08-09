@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "assets": [
+    {
+      "asset_uid": "char_classic_omega_0d1ba3",
+      "asset_id": "classic_omega",
+      "filename": "classic_omega.png",
+      "type": "character",
+      "path": "assets/characters/classic_omega.png"
+    }
+  ]
+}

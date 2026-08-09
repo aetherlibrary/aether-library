@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "startMenuBackground": "assets/background/start-menu/menu_bg3.png",
+  "startMenuTitleImage": "",
+  "startMenuTitleX": 960,
+  "startMenuTitleY": 360,
+  "startMenuIcon": "assets/app-icons/app_icon_master.png",
+  "startMenuIconX": 960,
+  "startMenuIconY": 330,
+  "startMenuIconScale": 0.07
+}

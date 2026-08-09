@@ -1,0 +1,20 @@
+{
+  "name": "aether-library",
+  "version": "1.0.0",
+  "description": "Local-first multi-AI reasoning workspace: Scholars answer independently, a Grand Sage synthesizes, and discussions can be saved as Markdown to your own Vault.",
+  "type": "module",
+  "private": true,
+  "main": "src/start.js",
+  "scripts": {
+    "start": "node src/start.js",
+    "dev": "node --watch src/server.js",
+    "test": "node --test"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "express": "^4.21.2",
+    "pdf-parse": "^1.1.1"
+  }
+}

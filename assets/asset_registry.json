@@ -1,0 +1,168 @@
+{
+  "version": 1,
+  "_format": "Developer Asset Registry. asset_uid is IMMUTABLE (never edit or reuse once shipped; scene objects reference it); asset_id is the editable human name; path is project-relative and is the dedupe key alongside the uid — never register the same normalized path twice.",
+  "assets": [
+    {
+      "asset_uid": "asset_bookshelf_9f21",
+      "asset_id": "bookshelf",
+      "filename": "bookshelf.png",
+      "type": "prop",
+      "path": "assets/props/bookshelf.png"
+    },
+    {
+      "asset_uid": "asset_wood_cabinet_small_4c7d",
+      "asset_id": "cabinet_small",
+      "filename": "cabinet_small.png",
+      "type": "prop",
+      "path": "assets/props/cabinet_small.png"
+    },
+    {
+      "asset_uid": "asset_record_player_b58e",
+      "asset_id": "record_player",
+      "filename": "record_player.png",
+      "type": "prop",
+      "path": "assets/props/record_player.png"
+    },
+    {
+      "asset_uid": "asset_podium_ef4083",
+      "asset_id": "podium",
+      "filename": "podium.png",
+      "type": "prop",
+      "path": "assets/props/podium.png"
+    },
+    {
+      "asset_uid": "asset_small_chair_7581f7",
+      "asset_id": "chair_small",
+      "filename": "chair_small.png",
+      "type": "prop",
+      "path": "assets/props/chair_small.png"
+    },
+    {
+      "asset_uid": "asset_core_book_c57100",
+      "asset_id": "core_book",
+      "filename": "core_book.png",
+      "type": "prop",
+      "path": "assets/props/core_book.png"
+    },
+    {
+      "asset_uid": "asset_small_book_shelf_4663e0",
+      "asset_id": "bookshelf_small",
+      "filename": "bookshelf_small.png",
+      "type": "prop",
+      "path": "assets/props/bookshelf_small.png"
+    },
+    {
+      "asset_uid": "asset_indian_rug_01_acd3f5",
+      "asset_id": "rug_a",
+      "filename": "rug_a.png",
+      "type": "prop",
+      "path": "assets/props/rug_a.png",
+      "placementLimit": 0
+    },
+    {
+      "asset_uid": "asset_frosty_sunrise_241fe6",
+      "asset_id": "painting_frosty_sunrise",
+      "filename": "painting_frosty_sunrise.png",
+      "type": "prop",
+      "path": "assets/props/painting_frosty_sunrise.png"
+    },
+    {
+      "asset_uid": "asset_plants_05_d02aca",
+      "asset_id": "plants_05",
+      "filename": "plants_05.png",
+      "type": "prop",
+      "path": "assets/props/plants_05.png"
+    },
+    {
+      "asset_uid": "asset_plants_07_e76efa",
+      "asset_id": "plants_07",
+      "filename": "plants_07.png",
+      "type": "prop",
+      "path": "assets/props/plants_07.png"
+    },
+    {
+      "asset_uid": "asset_armchair_brown_s_c71a4e",
+      "asset_id": "armchair_brown",
+      "filename": "armchair_brown.png",
+      "type": "prop",
+      "path": "assets/props/armchair_brown.png"
+    },
+    {
+      "asset_uid": "asset_armchair_green_s_ebe99e",
+      "asset_id": "armchair_green",
+      "filename": "armchair_green.png",
+      "type": "prop",
+      "path": "assets/props/armchair_green.png"
+    },
+    {
+      "asset_uid": "asset_armchair_red_s_50198e",
+      "asset_id": "armchair_red",
+      "filename": "armchair_red.png",
+      "type": "prop",
+      "path": "assets/props/armchair_red.png"
+    },
+    {
+      "asset_uid": "asset_plants_02_e3ff31",
+      "asset_id": "plants_02",
+      "filename": "plants_02.png",
+      "type": "prop",
+      "path": "assets/props/plants_02.png"
+    },
+    {
+      "asset_uid": "asset_plants_09_fddb41",
+      "asset_id": "plants_09",
+      "filename": "plants_09.png",
+      "type": "prop",
+      "path": "assets/props/plants_09.png"
+    },
+    {
+      "asset_uid": "asset_plants_10_15a129",
+      "asset_id": "plants_10",
+      "filename": "plants_10.png",
+      "type": "prop",
+      "path": "assets/props/plants_10.png"
+    },
+    {
+      "asset_uid": "asset_plants_11_c9ba6c",
+      "asset_id": "plants_11",
+      "filename": "plants_11.png",
+      "type": "prop",
+      "path": "assets/props/plants_11.png"
+    },
+    {
+      "asset_uid": "asset_plants_12_cc7440",
+      "asset_id": "plants_12",
+      "filename": "plants_12.png",
+      "type": "prop",
+      "path": "assets/props/plants_12.png"
+    },
+    {
+      "asset_uid": "asset_core_desk_256_e5b222",
+      "asset_id": "core_desk",
+      "filename": "core_desk.png",
+      "type": "prop",
+      "path": "assets/props/core_desk.png"
+    },
+    {
+      "asset_uid": "asset_rug_b_93f368",
+      "asset_id": "rug_b",
+      "filename": "rug_b.png",
+      "type": "prop",
+      "path": "assets/props/rug_b.png"
+    },
+    {
+      "asset_uid": "asset_book_a_dda054",
+      "asset_id": "book_a",
+      "filename": "book_a.png",
+      "type": "prop",
+      "path": "assets/props/book_a.png"
+    },
+    {
+      "asset_uid": "asset_book_b_4f58c4",
+      "asset_id": "book_b",
+      "filename": "book_b.png",
+      "type": "prop",
+      "path": "assets/props/book_b.png"
+    }
+  ]
+}

@@ -1,0 +1,160 @@
+{
+  "version": 2,
+  "id": "default",
+  "steps": [
+    {
+      "id": "settings",
+      "target": "settings",
+      "enabled": true,
+      "title": {
+        "en": "Settings",
+        "zh-TW": "設定"
+      },
+      "body": {
+        "en": "Adjust your interface language, default reply language, and visual theme here.",
+        "zh-TW": "您可以在這裡調整介面語言、預設回覆語言，以及主題顏色與深淺模式。"
+      },
+      "previewImage": ""
+    },
+    {
+      "id": "ai-config",
+      "target": "ai-config",
+      "enabled": true,
+      "title": {
+        "en": "AI Config",
+        "zh-TW": "AI 配置"
+      },
+      "body": {
+        "en": "Connect your AI providers, set up API access, and choose or refresh your preferred models.",
+        "zh-TW": "連接您的 AI 供應商、設定 API 存取，並選擇或重新整理偏好的模型。"
+      },
+      "previewImage": ""
+    },
+    {
+      "id": "vault",
+      "target": "vault",
+      "enabled": true,
+      "title": {
+        "en": "Vault",
+        "zh-TW": "Vault"
+      },
+      "body": {
+        "en": "Choose the folder you want to use as your Vault.\nIf you want to sync to Obsidian, enable the option and select the folder that contains the .obsidian folder.",
+        "zh-TW": "選擇您要使用的 Vault 資料夾。\n若您想同步資料到 Obsidian，請啟用整合選項，並選擇包含 .obsidian 資料夾的位置。"
+      },
+      "previewImage": ""
+    },
+    {
+      "id": "core-object",
+      "target": "core-object",
+      "enabled": true,
+      "title": {
+        "en": "Aetherom",
+        "zh-TW": "乙太之書(Aetherom)"
+      },
+      "body": {
+        "en": "Click Aetherom whenever you want to start a new discussion.",
+        "zh-TW": "想開始新的討論時，點擊乙太之書即可。"
+      },
+      "previewImage": ""
+    },
+    {
+      "id": "mode",
+      "target": "mode",
+      "enabled": true,
+      "title": {
+        "en": "Council or Mentor",
+        "zh-TW": "智囊團或導師"
+      },
+      "body": {
+        "en": "Council gathers one or more independent opinions before the Grand Sage reaches a final conclusion.\nMentor lets one Scholar answer directly.",
+        "zh-TW": "智囊團會先匯集學者(可選一或多位)的獨立見解，再由大智者做出最終結論。\n導師則由單一學者直接回答。"
+      },
+      "previewImage": ""
+    },
+    {
+      "id": "scholars",
+      "target": "scholars",
+      "enabled": true,
+      "title": {
+        "en": "Choose Your Scholars",
+        "zh-TW": "選擇您的學者"
+      },
+      "body": {
+        "en": "Choose which Scholars take part in this discussion.\nYou can change the Judge, switch modes, or pick different Scholars at any time.",
+        "zh-TW": "選擇參與這場討論的學者。\n您隨時可以更換大智者、切換模式，或改選其他學者。"
+      },
+      "previewImage": ""
+    },
+    {
+      "id": "attachments",
+      "target": "attachments",
+      "enabled": true,
+      "title": {
+        "en": "Attachments",
+        "zh-TW": "附加檔案"
+      },
+      "body": {
+        "en": "Attach files, PDFs, images, or text before asking a question. You can also drag and drop files or paste images directly.",
+        "zh-TW": "提問前可附加檔案、PDF、圖片或文字，也支援直接拖曳檔案或貼上圖片。"
+      },
+      "previewImage": ""
+    },
+    {
+      "id": "composer",
+      "target": "composer",
+      "enabled": true,
+      "title": {
+        "en": "Ask Your Question",
+        "zh-TW": "提出您的問題"
+      },
+      "body": {
+        "en": "Type your question, then press Send to begin the discussion.",
+        "zh-TW": "輸入您的問題，然後按下送出，討論便會開始。"
+      },
+      "previewImage": ""
+    },
+    {
+      "id": "discussion-workspace",
+      "target": "discussion-workspace",
+      "enabled": true,
+      "title": {
+        "en": "Review the Discussion",
+        "zh-TW": "檢視討論"
+      },
+      "body": {
+        "en": "Read the discussion, continue asking follow-up questions, or use Quick Questions below the input box to explore the topic further.",
+        "zh-TW": "閱讀討論內容、繼續追問，或使用輸入框下方的快速提問，進一步探索這個主題。"
+      },
+      "previewImage": ""
+    },
+    {
+      "id": "save-to-vault",
+      "target": "save-to-vault",
+      "enabled": true,
+      "title": {
+        "en": "Save to Vault",
+        "zh-TW": "儲存至 Vault"
+      },
+      "body": {
+        "en": "Save this discussion to your Vault.\nIf Obsidian Sync is enabled, you can also choose to sync it to your Obsidian Vault.",
+        "zh-TW": "將這場討論儲存至您的 Vault。\n若已啟用 Obsidian 整合，儲存後也可以選擇同步到您的 Obsidian Vault。"
+      },
+      "previewImage": ""
+    },
+    {
+      "id": "privacy-more",
+      "target": "",
+      "enabled": true,
+      "title": {
+        "en": "Privacy & Learn More",
+        "zh-TW": "隱私與更多資訊"
+      },
+      "body": {
+        "en": "Your API keys are stored on your device. Aether Library cannot access or retrieve your stored API keys.\nWhen you send a question, it is sent only to the AI provider(s) you selected.\nFor documentation, updates, and support, visit aetherlibrary.app",
+        "zh-TW": "您的 API 金鑰會保存在您的裝置上，Aether Library 無法存取您已儲存的 API 金鑰。\n當您送出問題時，問題只會傳送給您選擇的 AI 供應商。\n如需說明文件、更新與支援，請造訪 aetherlibrary.app"
+      },
+      "previewImage": ""
+    }
+  ]
+}

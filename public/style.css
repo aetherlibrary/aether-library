@@ -1,0 +1,3114 @@
+/* Aether Library — two worlds, one layout.
+   Left (library panel): pixel-art game theme — warm parchment panels inside
+   dark wooden frames, brass accents, square pixel-style controls.
+   Right (chat panel): the Aether Workspace — a dark premium reading
+   environment whose entire palette comes from the active Theme Pack
+   (--ws-* tokens below; Classic Library ships walnut/charcoal/brass/gold).
+   The workspace scope at the end of this file maps component tokens onto
+   the theme, so a new pack re-skins the workspace without touching it. */
+:root {
+  /* Core surfaces */
+  --wood-dark: #4a3218;    /* app frame / page backdrop */
+  --wood: #6b4a26;         /* panel frames, dividers */
+  --bg: #f0ddb2;           /* parchment: page/panel content, inputs */
+  --card: #e6cd97;         /* parchment mid: cards, list rows */
+  --panel-inset: #dbba82;  /* response panel inset */
+  --border: #5a4022;       /* control borders (dark brown) */
+  --text: #38260f;         /* primary ink */
+  --muted: #7d6440;        /* secondary ink */
+  --accent: #8a5a22;       /* brass/bronze accent */
+  --accent-soft: rgba(138, 90, 34, 0.14);
+  --ok: #4c7a3f;
+  --warn: #a2572c;
+  /* Pixel controls */
+  --btn-face: #f3e6c4;
+  --btn-shadow: rgba(58, 38, 15, 0.45);
+  /* Start Menu pre-load surface. Deliberately NOT --wood-dark: the start
+     screen paints before the configured artwork has been fetched, and a warm
+     brown there flashes as "the old yellow theme" for the moment it is
+     visible. Neutral near-black reads as an empty stage instead. */
+  --start-bg-base: #0e0d0c;
+  --font-pixel: "Consolas", "Courier New", ui-monospace, monospace;
+}
+
+/* ------------------------------------------------------------------- themes
+   The workspace derives its entire visual language from the active theme:
+   nothing inside #chat-panel names a raw color — it consumes only these
+   --ws-* tokens. app.js stamps the selected theme (Settings → General →
+   Theme) as [data-theme="…"] on <html>; a future theme (or World / Theme
+   Pack) redefines the same tokens under its own selector and the workspace
+   follows automatically.
+
+   "dark" is the default: the current brown & gold interface. No data-theme
+   attribute (or an unknown value) resolves to it via the bare :root block. */
+:root,
+:root[data-theme="dark"],
+:root[data-theme="classic-library"] {
+  /* Classic Library — sampled from classic_library_bg.png: dark walnut
+     shelving and floorboards, warm charcoal shadows, antique brass (desk
+     lamp, gramophone horn), muted gold picture-frame trim. A dark, warm
+     reading room rather than a developer panel. */
+  --ws-bg: #221a12;                            /* workspace background   */
+  --ws-panel: #2a2016;                         /* panels: one step up    */
+  --ws-card: #34281a;                          /* cards: one more step   */
+  --ws-deep: #1a140d;                          /* sunken code surfaces   */
+  --ws-frame: #120d08;                         /* outer frame line       */
+  --ws-border: rgba(196, 148, 74, 0.22);       /* low-opacity brass      */
+  --ws-border-strong: rgba(196, 148, 74, 0.45);
+  --ws-text: #f0e8d8;                          /* warm ivory ink         */
+  --ws-muted: #a6957a;
+  --ws-accent: #c0954c;                        /* antique brass          */
+  --ws-accent-ink: #251807;                    /* text on brass fills    */
+  --ws-accent-soft: rgba(192, 149, 76, 0.14);  /* hover wash             */
+  --ws-gold: #e5b968;                          /* bright gold, accents only */
+  --ws-ok: #8caf6f;
+  --ws-warn: #d8a24d;
+  --ws-scrollbar: #4d3c26;
+  --ws-scrollbar-track: #1c150e;
+}
+
+:root[data-theme="light"] {
+  /* Light — temporarily reuses the parchment palette (the light brown & gold
+     colors of the library panel) so the workspace reads as a sunlit study
+     rather than a dark reading room. Same brass/gold family, no blue. */
+  --ws-bg: #f0ddb2;                            /* parchment background     */
+  --ws-panel: #e6cd97;                         /* panels: one step down    */
+  --ws-card: #dbba82;                          /* cards: one more step     */
+  --ws-deep: #f7ecd2;                          /* sunken code surfaces     */
+  --ws-frame: #5a4022;                         /* outer frame line         */
+  --ws-border: rgba(90, 64, 34, 0.35);
+  --ws-border-strong: rgba(90, 64, 34, 0.55);
+  --ws-text: #38260f;                          /* primary ink              */
+  --ws-muted: #7d6440;
+  --ws-accent: #8a5a22;                        /* brass/bronze accent      */
+  --ws-accent-ink: #f7ecd2;                    /* text on brass fills      */
+  --ws-accent-soft: rgba(138, 90, 34, 0.14);
+  --ws-gold: #a06f1f;                          /* gold readable on parchment */
+  --ws-ok: #4c7a3f;
+  --ws-warn: #a2572c;
+  --ws-scrollbar: #c9ad74;
+  --ws-scrollbar-track: #e6cd97;
+}
+
+* { box-sizing: border-box; }
+
+/* The hidden attribute must win over components that set display (flex/grid),
+   otherwise an empty session header / conversation / chat log still shows. */
+[hidden] { display: none !important; }
+
+html, body { height: 100%; }
+
+body {
+  margin: 0;
+  font-family: "Segoe UI", "Microsoft JhengHei", system-ui, sans-serif;
+  background: var(--wood-dark);
+  color: var(--text);
+}
+
+.muted { color: var(--muted); font-size: 0.85rem; }
+/* The Librarian's status: a short message plus bulleted note titles. */
+#librarian-status { white-space: pre-line; font-size: 0.75rem; }
+
+.card {
+  background: var(--card);
+  border: 2px solid var(--border);
+  border-radius: 4px;
+  padding: 1rem 1.25rem;
+}
+
+/* ------------------------------------------------------- pixel controls */
+.pixel-btn {
+  font-family: var(--font-pixel);
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  background: var(--btn-face);
+  color: var(--text);
+  border: 2px solid var(--border);
+  border-radius: 3px;
+  box-shadow: 2px 2px 0 var(--btn-shadow);
+  padding: 0.45rem 1rem;
+  cursor: pointer;
+}
+.pixel-btn:hover { background: #fff3d6; }
+.pixel-btn:active { transform: translate(1px, 1px); box-shadow: 1px 1px 0 var(--btn-shadow); }
+.pixel-btn.primary { background: #eebd6a; }
+.pixel-btn.primary:hover { background: #f7cc80; }
+
+/* ------------------------------------------------------------ start menu */
+#start-menu {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.start-backdrop {
+  position: absolute;
+  inset: 0;
+  /* THE IMAGE IS SHOWN EXACTLY AS AUTHORED. There was a 45% parchment wash
+     (linear-gradient over rgba(214,178,116,.45)) layered on top of the art
+     here; it has been removed. Colour grading belongs in the source file, not
+     in a CSS layer the author cannot see or disable. Nothing in this rule may
+     tint, blend, filter or fade the artwork — no filter, no opacity, no
+     mix-blend-mode, no gradient, and no ::before/::after overlay.
+
+     The art URL is AUTHORED: --start-bg-url is set by
+     applyStartMenuBackground() in app.js from config/app-shell.json.
+     `cover` fills the viewport while preserving the image's aspect ratio.
+
+     --start-bg-base is the PRE-LOAD colour, and it is a neutral near-black
+     rather than the old warm --wood-dark. That warm base under the (now
+     removed) parchment wash is exactly what produced the yellow flash on
+     refresh; a neutral base reads as "loading", not as a stale theme. */
+  background: var(--start-bg-base) var(--start-bg-url, none) center / cover no-repeat;
+  image-rendering: pixelated;
+}
+.start-content {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  text-align: center;
+  padding: 2rem;
+}
+/* ------------------------------------------------------- start menu title
+   THE WORDMARK IS TEXT. It was briefly a rasterized image; a bitmap wordmark
+   goes soft as soon as it is scaled, and this one is set in a clamp() that
+   scales with the viewport, so text is simply the right tool. Georgia carries
+   the classic//literary register the library art is going for.
+
+   GOLD, not the old #3a2712 brown. That brown was legible only because a 45%
+   parchment wash used to sit over the artwork; with the wash removed (the
+   art is now shown exactly as authored) dark brown would disappear into a
+   very dark painting. The BEVEL GEOMETRY is unchanged — the same 2px 2px
+   offset the previous version used — only its role is inverted: the offset
+   layer is now the shadow beneath a light letter rather than a highlight
+   beneath a dark one. */
+.start-title {
+  margin: 0;
+  font-family: Georgia, "Times New Roman", "Songti SC", serif;
+  /* SIZED FROM THE PREVIOUS ARTWORK, not guessed. Start_logo.png's title band
+     measures 128px cap-height in a 1920x588 canvas; displayed under
+     max-width:80vw it scaled to 0.5333, so the wordmark stood 68.3px tall on a
+     1280x800 viewport. Georgia's cap-height is ~0.692em, so ~99px of font-size
+     reproduces that — where the old clamp topped out at 64px (44px of caps),
+     which is why it read as noticeably small. */
+  font-size: clamp(3.4rem, 7.6vw, 6.5rem);
+  /* Display type wants tight leading — the default ~1.14 line-height left 40px
+     of empty box around 69px of letterform. It also limits how far the taller
+     title pushes the centred column: the subtitle and buttons settle 12px
+     lower than at the old size rather than 18px. */
+  line-height: 1;
+  /* ALL CAPS via CSS, so the source text stays a normal readable string. */
+  text-transform: uppercase;
+  /* Georgia ships Regular and Bold only — 900 resolves to the same Bold face
+     as 700, so weight is added optically instead: a hairline stroke in the
+     letter's own colour thickens the stems without altering the shapes.
+     paint-order keeps the stroke behind the fill so the bevel stays crisp. */
+  font-weight: 900;
+  -webkit-text-stroke: 1.5px currentColor;
+  paint-order: stroke fill;
+  letter-spacing: 4px;
+  color: #e8c46a;
+  /* LAYER ORDER IS THE WHOLE POINT HERE.
+     CSS paints every text-shadow BENEATH the glyph — stroke included — and
+     within the list the FIRST entry paints on top. So the dark outline could
+     not be done with -webkit-text-stroke: at 2-3px it would have covered the
+     1px bevel highlight and flattened exactly the effect being protected.
+     Built as shadow layers instead, the ring sits below the bevel edge and
+     the depth offset but above the bloom: the outline reads behind the
+     highlight, which is what keeps the letters looking cut rather than
+     cartoon-outlined. The gold -webkit-text-stroke above is untouched, so the
+     optical weight added for the title-screen feel survives too. */
+  text-shadow:
+    0 1px 0 rgba(255, 246, 219, 0.5),   /* top bevel edge — stays on top */
+    2px 2px 0 rgba(24, 14, 5, 0.8),     /* the original offset, depth */
+    /* 2px dark ring for legibility against the dark library art. Eight
+       directions (cardinals at 2px, diagonals at 1.5px so the corners do not
+       bulge) — a hand-built outline, deliberately below the bevel above. */
+    -2px 0 0 rgba(18, 11, 4, 0.95),
+    2px 0 0 rgba(18, 11, 4, 0.95),
+    0 -2px 0 rgba(18, 11, 4, 0.95),
+    0 2px 0 rgba(18, 11, 4, 0.95),
+    -1.5px -1.5px 0 rgba(18, 11, 4, 0.95),
+    1.5px -1.5px 0 rgba(18, 11, 4, 0.95),
+    -1.5px 1.5px 0 rgba(18, 11, 4, 0.95),
+    1.5px 1.5px 0 rgba(18, 11, 4, 0.95),
+    0 0 20px rgba(232, 196, 106, 0.28); /* soft warm bloom, bottom-most */
+}
+/* Quiet brand statement under the title — smaller, wide-tracked, low emphasis.
+   Position, size, tracking and spacing are unchanged from the previous
+   version; only the typeface and colour move.
+
+   NOT var(--font-pixel) any more (that was Consolas — a code face under a
+   serif wordmark). A humanist sans sits properly beside Georgia. NOTHING IS
+   DOWNLOADED: no @font-face, no CDN link, so the stack names the requested
+   faces first and degrades to whatever the machine has. See the report — if a
+   specific face must be guaranteed it has to be self-hosted. */
+.start-subtitle {
+  /* Top margin was -0.4rem, pulling the subtitle UP into the title's line box.
+     Now +0.35rem: with .start-content's 1rem gap that is 21.6px of clear space
+     instead of 9.6px — the ~12px the bigger title needed to stop crowding it.
+     Horizontal alignment is untouched (0 on both sides, still centred by the
+     flex column). */
+  margin: 0.35rem 0 1.4rem;
+  font-family: "Inter", "Source Sans 3", "Noto Sans", "Segoe UI", system-ui, sans-serif;
+  font-size: clamp(0.8rem, 1.6vw, 1rem);
+  font-weight: 500;
+  /* 4px -> 5px. A hair wider to hold its own under a heavier title; same face,
+     same size, same colour. */
+  letter-spacing: 5px;
+  text-transform: uppercase;
+  color: rgba(228, 208, 168, 0.82);
+  text-shadow: 1px 1px 0 rgba(20, 12, 4, 0.7);
+}
+
+/* START MENU LOGO / SYMBOL — the future replacement for the wordmark above.
+   Its whole authoring pipeline stays live (import, dropdown, Reveal, Clear,
+   X/Y placement); it simply renders nothing until one is configured.
+
+   POSITIONED, not laid out. It is absolutely placed against the same
+   1920×1080 canvas the coordinates are authored in, so it cannot push the
+   buttons around as the art changes size — and X/Y address its CENTRE
+   (translate(-50%, -50%)), matching startMenuTitleX/Y in app-shell.json.
+
+   NO TINTING, by rule: no filter, no opacity, no blend mode. PNG alpha is
+   preserved because nothing is painted over or under it. */
+#start-title-image {
+  position: absolute;
+  /* --start-title-x/y are percentages of the canvas, written by
+     applyStartMenuTitle() — percentages so the art tracks its authored spot
+     at any window size, rather than drifting with a fixed pixel offset. */
+  left: var(--start-title-x, 50%);
+  top: var(--start-title-y, 27.78%);
+  transform: translate(-50%, -50%);
+  max-width: 80vw;
+  max-height: 40vh;
+  width: auto;   /* source aspect ratio, always */
+  height: auto;
+  image-rendering: pixelated;
+  user-select: none;
+  pointer-events: none;
+}
+#start-title-image[hidden] { display: none; }
+/* Decorative Start Menu icon — an independent layer, not part of the title
+   treatment. Same centre-based coordinate convention as the title image
+   (--start-icon-x/y are canvas percentages written by applyStartMenuIcon).
+
+   SIZE: --start-icon-w is the image's natural width expressed as a percentage
+   of the 1920-wide canvas, so "scale 1" means natural size in the coordinate
+   system the author is positioning in, and the composition holds at any window
+   size. height:auto keeps the source aspect ratio, so the icon never distorts
+   on a non-16:9 window.
+
+   The transform reads translate-then-scale, but with the default
+   transform-origin (50% 50%) the element is scaled about its own centre and
+   that centre lands exactly on left/top — so changing the scale grows the icon
+   in place rather than dragging it sideways.
+
+   No tint, no filter, no shadow: the Start Menu's yellow wash lives on
+   .start-backdrop and never reaches this element. */
+#start-icon-image {
+  position: absolute;
+  left: var(--start-icon-x, 50%);
+  top: var(--start-icon-y, 14.81%);
+  transform: translate(-50%, -50%) scale(var(--start-icon-scale, 1));
+  width: var(--start-icon-w, auto);
+  height: auto;
+  image-rendering: pixelated;
+  user-select: none;
+  pointer-events: none;
+}
+#start-icon-image[hidden] { display: none; }
+/* Container-only spacing. gap 0.8rem -> 1.3rem puts 8px more air between the
+   three buttons, and margin-top drops the whole group 14px further from the
+   subtitle. The buttons themselves — size, colours, borders, hover, alignment
+   — are untouched; nothing here reaches inside .start-btn. */
+.start-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 1.3rem;
+  min-width: 220px;
+  margin-top: 0.875rem;
+}
+.start-btn { font-size: 1rem; padding: 0.6rem 1.2rem; }
+/* Title-screen corner details: version bottom-left, copyright bottom-right.
+   Both sit above the backdrop wash but stay visually quiet. */
+.start-version,
+.start-copyright {
+  position: absolute;
+  bottom: 0.9rem;
+  z-index: 1;
+  font-family: var(--font-pixel);
+  font-size: 0.72rem;
+  font-weight: 400;
+  letter-spacing: 0.5px;
+  color: rgba(58, 39, 18, 0.6);
+}
+.start-copyright { right: 1.1rem; }
+/* Version gets a small legibility bump (less transparency, more contrast)
+   without becoming visually dominant — same position, size, and weight. */
+.start-version {
+  left: 1.1rem;
+  color: rgba(58, 39, 18, 0.78);
+  text-shadow: 1px 1px 0 rgba(255, 240, 200, 0.35);
+}
+
+/* -------------------------------------------------------------- app shell */
+#app-shell {
+  height: 100vh;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+}
+.main-layout {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  /* No gap here (was 10px) — #app-split-divider now occupies exactly that
+     10px itself (see its own rule below), so the library/chat split renders
+     at the IDENTICAL default pixel boundary as before the divider existed.
+     Restored for the ≤900px stacked layout below (the divider is inactive
+     there, contributing zero space) AND for F8 (below) — F8's OWN
+     #se-resize-divider (devtools/scene-editor.css) nets ZERO footprint by
+     design (unlike #app-split-divider's deliberate 10px net), so it relied
+     entirely on this gap for its original spacing; without restoring it
+     here, F8's library/inspector split would silently gain the 20px this
+     gap used to consume on its two sides. */
+  gap: 0;
+}
+
+/* Both panels share the dark wooden frame around parchment content. */
+.panel-frame {
+  position: relative;
+  border: 4px solid var(--wood);
+  outline: 3px solid #2e1e0c;
+  border-radius: 4px;
+  background: var(--bg);
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+#library-panel { flex: 3 1 0; }
+/* container-type: inline-size makes the panel's OWN actual width (340–560px
+   in split view; unconstrained in Chat Fullscreen — see body.chat-full
+   below) queryable by descendants, independent of the full browser
+   viewport — see the @container rule near .session-header for what uses
+   this. */
+#chat-panel { flex: 1 1 0; min-width: 340px; max-width: 560px; padding: 0.6rem 0.6rem 0.6rem; gap: 0.55rem; container-type: inline-size; }
+
+/* Once the user has actually dragged #app-split-divider, the split becomes
+   JS-driven from ONE source of truth: --app-split-right-width (set on
+   :root by applyAppSplitWidth(), app.js). Until then this class is absent
+   and the untouched `flex: 1 1 0` / 3:1 ratio above renders the default
+   layout exactly as it always did — a fresh load has zero shift.
+   min-width/max-width MUST be lifted here: the base rule's
+   `max-width: 560px` is a hard computed-width ceiling that silently
+   defeated dragging entirely (the inline flex-basis updated correctly to
+   any value, but the rendered width stopped dead at 560px, leaving only
+   ~73px of usable travel from the ~487px default — which is why the
+   separator read as "cannot resize at all"). The JS clamp
+   (clampChatPanelWidth) is the authoritative min/max while resized. Same
+   technique, and the same reason, as F8's own #scene-editor-inspector
+   .se-panel-resized rule (devtools/scene-editor.css). */
+body.app-split-resized #chat-panel {
+  flex: 0 0 var(--app-split-right-width);
+  min-width: 0;
+  max-width: none;
+}
+
+/* Draggable production separator — see initAppSplitDivider() in app.js.
+   Same zero-footprint negative-margin technique as F8's #se-resize-divider
+   (devtools/scene-editor.css): width 16px with -3px margins on each side
+   nets exactly 10px of real flex-row footprint — precisely what
+   .main-layout's own gap used to contribute above — so inserting this
+   element causes NO layout shift at the default split. The 16px box is the
+   comfortable HIT area; the visible line (.asd-line) is a hairline within
+   it, per "don't make users pixel-hunt for the line." */
+.app-split-divider {
+  flex: 0 0 auto;
+  width: 16px;
+  margin: 0 -3px;
+  position: relative;
+  z-index: 6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* The custom PNG cursor IS the primary affordance here (not a system
+     resize cursor, and not a separate floating icon on top of one) —
+     --app-split-cursor is computed once at startup by buildAppSplitCursor()
+     in app.js (downscales assets/ui/separator_vertical.png onto a small
+     canvas, nearest-neighbor, so it stays pixel-crisp rather than blurry)
+     and set as a full `url(...) hotspotX hotspotY, ew-resize` value on
+     :root. Falls back to plain ew-resize for the brief window before that
+     JS has run, or if it ever fails (canvas/image error). ew-resize (not
+     col-resize) matches this element's actual left-right drag axis. */
+  cursor: var(--app-split-cursor, ew-resize);
+  touch-action: none;
+  user-select: none;
+}
+/* Hidden whenever there aren't two side-by-side panels to resize — in-app
+   fullscreen (lib-full/chat-full), F8 active (it owns its own divider), or
+   the ≤900px stacked layout (see the responsive block far below). Toggled
+   by applyAppSplitWidth() in app.js, which checks live layout state rather
+   than hardcoding each mode, so this stays correct if a future layout mode
+   is added without touching this rule. */
+.app-split-divider.is-inactive { display: none; }
+
+/* F8 active: restores the ORIGINAL 10px gap .main-layout used before this
+   divider existed. #se-resize-divider (devtools/scene-editor.css) nets
+   ZERO footprint by design (unlike #app-split-divider's deliberate 10px
+   net — see its own rule above) and always relied on this gap for its
+   spacing; #app-split-divider itself is display:none while F8 is active
+   (the rule above), so it contributes nothing here either way. Without
+   this, F8's library/inspector split would silently gain the 20px this
+   gap used to consume on both sides of the (zero-width) F8 divider. */
+body.scene-editor-active .main-layout { gap: 10px; }
+
+/* Subtle by design: fully invisible at rest (no permanent bar) — the
+   app-shell's own background already shows through this 10px seam exactly
+   as it did before the divider existed. Only hover/active drag reveal it,
+   in the same warm gold separator_vertical.png represents. --ws-gold is
+   defined at :root (see the theme block below), not scoped to #chat-panel,
+   so it's safe to reference here despite this element living outside that
+   panel. */
+.asd-line {
+  position: absolute;
+  left: 50%;
+  top: 2px;
+  bottom: 2px;
+  width: 1px;
+  background: transparent;
+  transform: translateX(-50%);
+  transition: background-color 0.12s ease, width 0.12s ease;
+}
+.app-split-divider:hover .asd-line,
+.app-split-divider.is-dragging .asd-line {
+  background: var(--ws-gold);
+  width: 2px;
+}
+
+/* While actively dragging, the gold highlight and custom cursor (and
+   no-text-select) must hold even if the pointer strays off the 16px handle
+   mid-drag — pointer capture alone doesn't reliably keep the CURSOR GLYPH
+   pinned to the captured element across browsers, only event delivery.
+   Toggled on <body> for the duration of the drag only (see
+   initAppSplitDivider() in app.js). Same --app-split-cursor variable as
+   .app-split-divider itself, so the two never drift out of sync. */
+body.app-split-dragging {
+  cursor: var(--app-split-cursor, ew-resize) !important;
+  user-select: none;
+}
+
+/* Focused fullscreen modes (in-app, not browser fullscreen). */
+body.lib-full #chat-panel { display: none; }
+body.lib-full #library-panel { flex: 1 1 auto; }
+body.chat-full #library-panel { display: none; }
+body.chat-full #chat-panel { flex: 1 1 auto; max-width: none; }
+
+/* Library fullscreen: frameless — the stage just centers the 16:9 scene on
+   the dark backdrop (scene sizing rules live with .library-scene below). */
+body.lib-full .library-stage {
+  background: #211f1c;
+}
+
+.fs-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 20;
+  width: 1.9rem;
+  height: 1.9rem;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  background: var(--btn-face);
+  color: var(--text);
+  border: 2px solid var(--border);
+  border-radius: 3px;
+  box-shadow: 2px 2px 0 var(--btn-shadow);
+  cursor: pointer;
+}
+.fs-btn:hover { background: #fff3d6; }
+.fs-btn[aria-pressed="true"] { background: #eebd6a; }
+
+/* -------------------------------------------------------- library panel */
+.lib-nav {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+.lib-nav .pixel-btn { min-width: 118px; text-align: center; }
+
+/* Library Activity — a compact, in-world notification anchored bottom-right
+   of the library scene (see the HTML comment above it, and
+   showLibraryActivity() in app.js). Never blocks the book hotspot or nav:
+   sits above the scene but stays out of the way and fades on its own. */
+.library-activity {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  z-index: 20;
+  max-width: 240px;
+  padding: 0.55rem 0.7rem;
+  background: var(--card);
+  border: 2px solid var(--wood);
+  border-radius: 4px;
+  box-shadow: 2px 2px 0 var(--btn-shadow);
+  font-family: var(--font-pixel);
+  font-size: 0.72rem;
+  line-height: 1.4;
+  color: var(--text);
+  opacity: 0;
+  transform: translateY(6px);
+  transition: opacity 0.35s ease, transform 0.35s ease;
+  pointer-events: none;
+}
+.library-activity.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+.library-activity-title {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-weight: 700;
+  margin-bottom: 0.3rem;
+}
+.library-activity-body { white-space: pre-line; color: var(--muted); }
+
+.library-stage {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* Never visible while the scene covers; dark fallback if the art fails
+     to load — no beige gutters in any state. */
+  background: #10222f;
+  /* Size container: lets the scene compute its width from the stage height
+     (cqh units) so its aspect ratio stays locked in BOTH overflow directions
+     — `height: 100%` + max-width clamping alone breaks the ratio on narrow
+     windows because a definite height is never re-derived from aspect-ratio. */
+  container-type: size;
+}
+/* The Library is one fixed game camera in both modes: the 16:9 scene
+   element always equals the drawn image and cover-fills whatever frames
+   it — the desktop panel in Normal Mode (≈ the center 4:3 of the scene),
+   the whole browser viewport in Game Fullscreen. Excess crops equally on
+   opposite edges: no gutters, no bars, no filler, no distortion — the
+   artwork connects directly to the workspace beside it. Keeping element
+   == image is also what keeps the book hotspot's normalized scene
+   coordinates identical across modes and window sizes. */
+.library-scene {
+  position: relative;
+  /* Own stacking context: scene depth z-indexes (renderLayer bands ×
+     Y-sort, values into the hundreds of thousands — see sceneDepthZ in
+     app.js) must NEVER escape above the surrounding chrome (nav buttons,
+     dialogs), whatever values the depth math produces. */
+  isolation: isolate;
+  /* KNOWN LIMITATION (Scene Background Ownership v1): the scene surface's
+     ratio is still fixed at 16:9, sized to the original Classic Library art
+     (1920×1080), even though the Scene now owns its background and carries its
+     own sceneMeta.width/height. A background with a different native ratio is
+     letterboxed by object-fit: contain below rather than reshaping the stage.
+     Driving this from sceneMeta would change scene-object placement maths
+     (every object position is a normalized fraction of this space), so it is
+     deliberately a separate task — see docs/scene-background-ownership-plan.md
+     §9 R3. */
+  aspect-ratio: 16 / 9;
+  /* Cover-fit at a locked ratio: as wide as the stage, or as wide as its
+     full height needs at 16:9 — whichever is LARGER. The stage centers
+     it; the panel's overflow:hidden crops the spill. */
+  width: max(100%, calc(100cqh * 16 / 9));
+  flex-shrink: 0; /* the stage must not squeeze the cover overflow away */
+}
+/* The BACKGROUND image only — scene objects (.scene-object) size themselves
+   from the placement registry and must never inherit this full-bleed fill. */
+.library-scene img#library-bg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain; /* element is exactly 16:9, so this is a 1:1 fill */
+  image-rendering: pixelated;
+  user-select: none;
+}
+/* Library Fullscreen: fully detached from the desktop layout — the panel
+   covers exactly the whole browser viewport (100vw×100vh), no frame, no
+   padding, no reserved side columns. The 16:9 scene scales proportionally
+   to FILL the viewport (game-style cover): on a 16:9 display it fits
+   edge-to-edge exactly; on any other ratio the small overflow is cropped
+   equally on both sides — never bars, never strips, never distortion.
+   Visually equivalent to F11 fullscreen without leaving windowed mode. */
+body.lib-full #library-panel {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  border: none;
+  outline: none;
+  border-radius: 0;
+  padding: 0;
+  margin: 0;
+  background: #211f1c; /* fallback only; the scene always covers it */
+}
+/* (The scene itself needs no fullscreen overrides — the shared cover-fit
+   camera above scales to whatever the fixed panel provides.) */
+
+/* Scene objects — NPCs & props placed by the anchor system (SCENE_OBJECTS /
+   placeSceneObjects() in app.js): left/top (world point), width (world
+   size), the anchor transform, and z-index are all set per object from the
+   registry (z-index via the depth-layer system: renderLayer band + Y-sort,
+   sceneDepthZ in app.js). Decor only — interaction stays with the dedicated
+   hotspots, which always render above every depth band. */
+.scene-object {
+  position: absolute;
+  height: auto;
+  image-rendering: pixelated;
+  user-select: none;
+  pointer-events: none;
+}
+/* Idle Controller hover thoughts (public/app.js): re-enables pointer events
+   for Characters ONLY (data-hoverable="npc", set by placeSceneObjects()/
+   createCharacterSceneElement() for kind:"npc" defs) — props/decor stay
+   click-through exactly as the rule above intends. */
+.scene-object[data-hoverable="npc"] {
+  pointer-events: auto;
+}
+
+/* Player Interaction — direct player/pointer hover effects for Props (F8
+   Scene Editor's "PLAYER INTERACTION" component; see
+   applyPlayerInteractionStyle() in app.js and sanitizePlayerInteraction in
+   src/services/sceneConfig.js). data-hoverable="prop" (set by
+   applyPlayerInteractionStyle, same pattern as the NPC rule above)
+   re-enables pointer events ONLY for a Prop with an enabled, non-empty
+   hover effect stack — everything else stays click-through.
+
+   FLOAT/SCALE animate the INDEPENDENT `translate`/`scale` CSS properties
+   (CSS Transforms Level 2), never `transform` — that property is fully
+   owned by applySceneObjectStyle() (anchor position + flipX) and the two
+   compose additively by spec, so hovering can never overwrite or corrupt
+   scene placement, however many times either one runs. Values come from
+   custom properties set per-element from the Prop's own authored data —
+   this rule block is effect-type-generic, never tuned to any one Prop
+   (e.g. the migrated book) or any hardcoded color/distance/size. Pointer
+   leave (removing :hover) snaps every property back to its unset default
+   instantly — no JS state, so repeated hover enter/leave can never
+   accumulate drift. */
+.scene-object[data-hoverable="prop"] {
+  pointer-events: auto;
+}
+.pi-fx-float:hover {
+  animation: pi-hover-float var(--pi-float-duration, 1.2s) ease-in-out infinite;
+}
+@keyframes pi-hover-float {
+  0%, 100% { translate: 0 0; }
+  50% { translate: 0 calc(-1 * var(--pi-float-distance, 6px)); }
+}
+.pi-fx-scale {
+  transition: scale var(--pi-scale-duration, 0.3s) ease-out;
+}
+.pi-fx-scale:hover {
+  scale: var(--pi-scale-amount, 1.05);
+}
+.pi-fx-glow {
+  transition: filter 0.3s ease-out;
+}
+.pi-fx-glow:hover {
+  filter: var(--pi-glow-filter, none);
+}
+
+/* Player Interaction Animation — decoded-GIF playback (public/app.js's
+   startDecodedGifPlayback/stopDecodedGifPlayback): a dedicated <canvas>
+   sibling per Prop (ensureAnimationCanvasLayer), positioned by copying the
+   Prop's own computed left/top/width/transform at hover-time — inert
+   (display:none) until an authored Animation effect's GIF has actually been
+   decoded and starts playing. `image-rendering: pixelated` keeps pixel-art
+   GIFs crisp at scale, matching how the Prop's own <img> already renders
+   (see the .scene-object rule). Frame drawing itself is imperative (JS
+   ctx.drawImage per tick, timed by effectiveFrameDelayMs) — this rule only
+   owns positioning/rendering-quality, never timing.
+
+   pointer-events:none is deliberate and load-bearing: the img stays the ONE
+   stable Player Interaction hover owner for the whole interaction (opacity:0
+   while this canvas is visible, NEVER visibility:hidden — that would drop
+   the img out of hit-testing, breaking :hover and, under a genuinely moving
+   pointer, causing rapid pointerenter/pointerleave thrashing as hit-testing
+   flickered between the img and whatever's behind it). This canvas is purely
+   a rendering surface; it must never become the pointer target itself. */
+.pi-gif-canvas-layer {
+  position: absolute;
+  pointer-events: none;
+  image-rendering: pixelated;
+}
+/* Float/Scale/Glow are authored on the img as pi-fx-* classes, triggered by
+   ITS OWN `:hover` (see the rules above) — the canvas can never itself match
+   `:hover` (pointer-events:none, by design). startDecodedGifPlayback mirrors
+   whichever pi-fx-* classes are actually authored onto this canvas for the
+   duration of active playback, so the SAME custom-property-driven effect
+   applies to the visible layer too — unconditional here (not `:hover`-gated)
+   because presence of the class on THIS element already means "playback is
+   active", the only state the canvas is ever visible in. */
+.pi-gif-canvas-layer.pi-fx-float {
+  animation: pi-hover-float var(--pi-float-duration, 1.2s) ease-in-out infinite;
+}
+.pi-gif-canvas-layer.pi-fx-scale {
+  scale: var(--pi-scale-amount, 1.05);
+}
+.pi-gif-canvas-layer.pi-fx-glow {
+  filter: var(--pi-glow-filter, none);
+}
+
+/* Automatic ground shadows (see the ground-shadows section in app.js):
+   one soft ellipse sheet per entity, styled entirely from the placement
+   registry. Smooth scaling on purpose — a pixelated soft gradient bands. */
+.scene-shadow {
+  position: absolute;
+  height: auto;
+  user-select: none;
+  pointer-events: none;
+}
+
+/* Character Bubble layer (bubble-renderer.js) — a DEDICATED sibling layer
+   for dialogue bubbles, never nested inside a character's DOM. Covers the
+   scene so per-bubble % positions live in the same normalized coordinate
+   space as sprites; z-index set from JS (above every depth band, below the
+   book hotspot). Never intercepts pointer events — clicks pass through to
+   hotspots and the dev editor's capture layer alike. */
+#bubble-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+/* One dialogue bubble: a 9-SLICE frame via border-image — the border-width
+   area renders the PNG's corner/edge slices (corners never stretch, edges
+   stretch along their axis) and `fill` stretches the center behind the
+   text. Size is fully automatic: width grows with the text up to the
+   max-width the renderer sets, wraps, and height follows — the PNG itself
+   is never manually resized. border-image-source is set per bubble from
+   the character's persisted bubble config. translate(-50%, -100%) hangs
+   the bubble's bottom-center from its anchor point (sprite top center +
+   authored offsets). */
+.character-bubble {
+  position: absolute;
+  transform: translate(-50%, -100%);
+  width: max-content;
+  border-style: solid;
+  border-width: 12px;
+  border-image-slice: 25% fill;
+  border-image-repeat: stretch;
+  image-rendering: pixelated;
+}
+.character-bubble-text {
+  font-size: 14px;
+  line-height: 1.35;
+  color: #1c2733;
+  text-align: center;
+  overflow-wrap: break-word;
+}
+
+/* The book on the council table — the session entry point.
+   Production art: assets/props/core_book.png (square sprite, loaded via the
+   asset map).
+
+   This button stays PURELY the click/keyboard-focus surface, at this same
+   fixed position/size, never data-driven. A separate, genuine Scene Object
+   <img> (scene-config instance_id "core_book_01") renders the actual art
+   AND its hover behavior ON TOP of it at the identical position (authored
+   to match these exact percentages), which is what the F8 Scene Editor's
+   Props/Scene Objects panels and selection/drag tooling manage — those
+   require a real <img> (naturalWidth etc.), which this button, by design,
+   is not. Positioning uses normalized scene coordinates: the book lives at
+   image point (50%, 51%) with a width of 7% of the image. The scene
+   element always equals the drawn image in both modes, so these
+   percentages hold everywhere — no per-mode adjustments.
+
+   This button used to also render a decorative .book-sprite child (a
+   second, non-Scene-Object visual layer painted via CSS background-image)
+   with its own hardcoded hover float+glow animation — the old "ghost
+   book". That has been REMOVED entirely: this button has no visual content
+   of its own now, and core_book_01's hover behavior is authored
+   playerInteraction data (see .pi-fx-* below), not CSS baked in here. */
+.book-hotspot {
+  position: absolute;
+  left: 50%;
+  top: 51%;
+  transform: translate(-50%, -50%);
+  width: 7%;
+  aspect-ratio: 1 / 1;
+  padding: 0;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  cursor: pointer;
+  z-index: 1000001; /* above every depth-layer band (DEPTH_Z_MAX, app.js) */
+  /* Pointer-transparent on purpose (Player Interaction / Collision
+     independence fix): this button used to sit pointer-events:auto at the
+     SAME z-index as core_book_01's own Scene Object <img>, and tied z-index
+     is broken by DOM order — this button is later in the DOM (index.html),
+     so it always won hit-testing, silently eating that Prop's `:hover`
+     whenever the book was placed at/near this fixed spot (collision/the
+     table were never involved — this button is the ONLY thing that was ever
+     intercepting). Mouse/touch clicks now fall through to whatever actually
+     renders here; app.js restores click-to-start via a delegated listener
+     that tests this exact geometry independent of hit-testing. Keyboard
+     Tab+Enter/Space is untouched by pointer-events and still activates this
+     button directly. */
+  pointer-events: none;
+}
+/* Beat the global button:hover / button:active styling — the book must never
+   pick up a parchment face or the pressed 1px offset (it would knock out the
+   centering transform). */
+.book-hotspot:hover:not(:disabled) { background: transparent; }
+.book-hotspot:active:not(:disabled) {
+  transform: translate(-50%, -50%);
+  box-shadow: none;
+}
+
+/* ------------------------------------------------------------ mode modal */
+.mode-modal {
+  background: var(--bg);
+  color: var(--text);
+  border: 3px solid var(--wood);
+  outline: 2px solid #2e1e0c;
+  border-radius: 4px;
+  padding: 1.4rem 1.6rem;
+  min-width: min(360px, 92vw);
+}
+.mode-modal::backdrop { background: rgba(46, 30, 12, 0.55); }
+.mode-question {
+  margin: 0 0 1rem;
+  font-size: 1.05rem;
+  font-weight: 600;
+  text-align: center;
+}
+.mode-buttons { display: flex; gap: 0.8rem; justify-content: center; }
+.mode-buttons .pixel-btn { font-size: 1rem; padding: 0.55rem 1.3rem; }
+
+/* AI status inside the Core Book modal (Batch A). Intentionally quiet: a
+   hairline rule, small muted type, and plain label/value rows — no cards,
+   no badges, no pills. It must read as a footnote beneath the two mode
+   buttons, never compete with them, and it must not grow the modal much
+   (three provider rows + one check row at the existing min-width). */
+.mode-ai-status {
+  margin-top: 1rem;
+  padding-top: 0.7rem;
+  border-top: 1px solid var(--border);
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+.mode-ai-status-title {
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 0.35rem;
+}
+.mode-ai-list { list-style: none; margin: 0; padding: 0; }
+.mode-ai-list li {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.1rem 0;
+}
+.mode-ai-list .ai-name { color: var(--text); }
+/* State colouring reuses the existing semantic tokens rather than inventing
+   a status palette — --ok for configured, plain muted for not configured
+   (absence of credentials is a neutral fact, not an error). */
+.mode-ai-list .ai-on { color: var(--ok); }
+.mode-ai-list .ai-off { color: var(--muted); }
+.mode-ai-check { margin-top: 0.45rem; }
+.mode-ai-check .ai-warn { color: var(--warn); }
+
+/* Product Status dialog — same parchment/wood frame as every other dialog,
+   compact two-column rows, no dashboard styling. */
+#product-status-dialog {
+  background: var(--bg);
+  color: var(--text);
+  border: 3px solid var(--wood);
+  outline: 2px solid #2e1e0c;
+  border-radius: 4px;
+  padding: 1.2rem 1.4rem;
+  min-width: min(440px, 94vw);
+  max-width: min(560px, 94vw);
+}
+#product-status-dialog::backdrop { background: rgba(46, 30, 12, 0.55); }
+#product-status-dialog h2 { margin: 0 0 0.8rem; font-size: 1.05rem; }
+.product-status-body { max-height: 65vh; overflow-y: auto; }
+.ps-group { margin-bottom: 0.9rem; }
+.ps-group h3 {
+  margin: 0 0 0.3rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--accent);
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 0.15rem;
+}
+.ps-list { list-style: none; margin: 0; padding: 0; font-size: 0.82rem; }
+.ps-list li {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.15rem 0;
+}
+.ps-list .ps-key { color: var(--muted); }
+.ps-list .ps-val { color: var(--text); text-align: right; word-break: break-all; }
+.ps-list .ps-val.ai-on { color: var(--ok); }
+.ps-list .ps-val.ai-off { color: var(--muted); }
+.ps-list .ps-val.ai-warn { color: var(--warn); }
+.ps-note {
+  margin: 0.6rem 0 0;
+  font-size: 0.75rem;
+  color: var(--muted);
+  font-style: italic;
+}
+
+label { display: block; margin-bottom: 0.5rem; color: var(--muted); font-size: 0.9rem; }
+
+textarea {
+  width: 100%;
+  resize: vertical;
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.6rem 0.8rem;
+  font: inherit;
+}
+
+/* Now just the Librarian status line beneath Quick Questions — Reset/Send
+   live inside the composer toolbar (see .composer-toolbar below). */
+.ask-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.6rem 1rem;
+  margin-top: 0.6rem;
+}
+
+/* ------------------------------------------------------------- composer */
+/* ONE unified composer frame: this outer div is the ONLY element that owns
+   a visible border/radius/background/focus state for the whole input area
+   — the textarea and toolbar inside are borderless and transparent, so
+   there is never a second frame nested inside this one (previously the
+   textarea rendered its own border/outline, reading as a double border).
+   Vertical flex: textarea region on top (grows/shrinks with the workspace),
+   the toolbar row anchored below it in normal document flow. */
+.composer {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0.4rem 0.5rem;
+  transition: border-color 0.15s ease;
+  /* NEVER overflow:auto here — a scrollbar on the outer composer (wrapping
+     the toolbar along with the textarea) is exactly the bug this fixes.
+     measureInteractionFloor() (app.js) is what actually keeps the divider
+     from squeezing the composer below its children's minimum (textarea's
+     one-line floor + the toolbar's natural height); if content genuinely
+     exceeds the textarea's visible height, the <textarea> element scrolls
+     internally on its own — native browser behavior, needs no CSS here —
+     without the composer itself ever needing to clip or scroll. */
+}
+.composer:focus-within { border-color: var(--accent); }
+.composer.drag-over { border-color: var(--accent); border-style: dashed; }
+.composer textarea {
+  flex: 1 1 auto;
+  width: 100%;
+  min-height: 0;
+  border: none;
+  outline: none;
+  box-shadow: none;
+  appearance: none;
+  border-radius: 0;
+  background: transparent;
+  padding: 0.45rem 0.5rem;
+  /* The workspace divider is the ONLY manual resize control in the
+     conversation UI — the textarea's native bottom-right resize handle
+     conflicts with it and is removed everywhere. */
+  resize: none;
+}
+/* Focus lives on the outer .composer (:focus-within above) only — the
+   textarea itself must never render its own ring, even on browsers that add
+   a default :focus-visible outline/shadow. */
+.composer textarea:focus,
+.composer textarea:focus-visible {
+  border: none;
+  outline: none;
+  box-shadow: none;
+}
+
+/* Bottom toolbar: attach button bottom-left, Reset/Send bottom-right, both
+   in normal flex flow so they can never drift into the middle of the
+   composer or escape its frame. Stays anchored to the composer's bottom
+   because it's flex: 0 0 auto below the flex: 1 1 auto textarea above. */
+.composer-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  flex: 0 0 auto;
+  margin-top: 0.3rem;
+}
+.composer-toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+.attach-btn {
+  flex: 0 0 auto;
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--muted);
+  border: 1px solid var(--border);
+  font-size: 1.15rem;
+  line-height: 1;
+  font-weight: 400;
+}
+.attach-btn:hover { color: var(--text); border-color: var(--accent); }
+
+.attachment-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  padding: 0.3rem 0.4rem 0.45rem;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 0.3rem;
+}
+.attachment-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  max-width: 20rem;
+  padding: 0.25rem 0.35rem 0.25rem 0.55rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--card);
+  font-size: 0.8rem;
+  color: var(--text);
+}
+.attachment-chip .chip-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.attachment-chip.is-loading .chip-label { color: var(--muted); font-style: italic; }
+.attachment-chip.is-error { border-color: #a04040; }
+.attachment-chip.is-error .chip-label { color: #d08080; }
+/* Previous discussion (Continue Discussion, Archives detail action): same
+   chip, a small accent so it reads as distinct from an ordinary attachment
+   at a glance — never a redesign of the chip itself. */
+.attachment-chip.is-archive { border-color: var(--accent); }
+.attachment-chip .chip-remove {
+  flex: 0 0 auto;
+  width: 1.15rem;
+  height: 1.15rem;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--muted);
+  font-size: 0.85rem;
+  line-height: 1;
+  font-weight: 600;
+}
+.attachment-chip .chip-remove:hover { background: var(--border); color: var(--text); }
+
+button {
+  background: var(--btn-face);
+  color: var(--text);
+  border: 2px solid var(--border);
+  border-radius: 3px;
+  padding: 0.45rem 1.1rem;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 2px 2px 0 var(--btn-shadow);
+}
+button:hover:not(:disabled) { background: #fff3d6; }
+button:active:not(:disabled) { transform: translate(1px, 1px); box-shadow: 1px 1px 0 var(--btn-shadow); }
+button:disabled { opacity: 0.5; cursor: wait; }
+
+#settings-cancel {
+  background: transparent;
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--text);
+  border: 2px solid var(--border);
+}
+.btn-ghost:hover { border-color: var(--accent); }
+
+/* --------------------------------------------------------------- Vault */
+.vault-control { position: relative; }
+
+/* The Vault split control belongs to the same pixel-button family as
+   SETTING / ARCHIVE: filled parchment face, 2px dark border, hard offset
+   shadow — never transparent over the library artwork. The main button and
+   the dropdown caret share one filled face, split by an inner border. */
+.vault-split {
+  display: inline-flex;
+  background: var(--btn-face);
+  border: 2px solid var(--border);
+  border-radius: 3px;
+  box-shadow: 2px 2px 0 var(--btn-shadow);
+  overflow: hidden;
+}
+.lib-nav .vault-split { min-width: 118px; }
+.vault-split button {
+  flex: 1;
+  font-family: var(--font-pixel);
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  background: transparent;
+  color: var(--text);
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  padding: 0.45rem 1rem;
+}
+.vault-split button:hover:not(:disabled) { background: #fff3d6; }
+.vault-split button:active:not(:disabled) { transform: none; box-shadow: none; }
+.vault-split .vault-caret {
+  flex: 0 0 auto;
+  border-left: 2px solid var(--border);
+  padding: 0.45rem 0.6rem;
+  font-size: 0.75rem;
+}
+
+.vault-menu {
+  position: absolute;
+  top: calc(100% + 0.4rem);
+  left: 0;
+  min-width: 260px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  z-index: 50;
+  padding: 0.35rem;
+}
+.vault-menu button[role="menuitem"] {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  color: var(--text);
+  border: none;
+  border-radius: 6px;
+  padding: 0.5rem 0.6rem;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+.vault-menu button[role="menuitem"]:hover { background: var(--accent-soft); }
+.vault-menu hr { border: none; border-top: 1px solid var(--border); margin: 0.3rem 0.2rem; }
+/* Obsidian integration status line + connected-path detail inside the menu. */
+.vault-menu-status {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 1rem;
+  padding: 0.35rem 0.6rem 0.1rem;
+  font-size: 0.75rem;
+}
+.vault-menu-status b.ok { color: var(--ok); }
+.vault-menu-detail { padding: 0.15rem 0.6rem 0.3rem; font-size: 0.75rem; }
+
+.vault-menu-footer { padding: 0.5rem 0.6rem 0.3rem; font-size: 0.75rem; }
+/* Each footer entry is a label + path pair; later labels (e.g. Obsidian)
+   separate from the previous path with a little air. */
+.vault-menu-footer .muted { display: block; }
+.vault-menu-footer .muted + .vault-menu-path + .muted { margin-top: 0.4rem; }
+.vault-menu-path { display: block; color: var(--text); word-break: break-all; margin-top: 0.15rem; }
+
+.vault-confirm-label { margin: 0.7rem 0 0.15rem; font-size: 0.8rem; }
+.vault-confirm-label:first-of-type { margin-top: 0.2rem; }
+.vault-confirm-path { margin: 0; font-size: 0.9rem; color: var(--text); word-break: break-all; }
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1rem;
+}
+
+.panel h2 {
+  margin: 0 0 0.5rem;
+  font-size: 1rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+
+.panel-model {
+  font-size: 0.75rem;
+  font-weight: 400;
+  color: var(--muted);
+}
+
+.answer {
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-size: 0.9rem;
+  line-height: 1.75;
+  color: var(--muted);
+  background: var(--bg);
+  border: 1px solid transparent;
+  border-radius: 6px;
+  padding: 0.85rem 1rem;
+  min-height: 3rem;
+  max-height: 32rem;
+  margin: 0;
+  overflow: auto;
+}
+
+.answer.state-ok { color: var(--text); white-space: normal; }
+.answer.state-error { color: var(--warn); border-color: var(--warn); font-family: Consolas, monospace; font-size: 0.85rem; }
+.answer.state-loading { color: var(--accent); }
+
+/* Rendered markdown typography — readability over density */
+.answer p { margin: 0 0 0.7rem; }
+.answer p:last-child { margin-bottom: 0; }
+
+.answer ul, .answer ol { margin: 0.3rem 0 0.9rem; padding-left: 1.5rem; }
+.answer li { margin: 0.35rem 0; }
+.answer li > ul, .answer li > ol { margin: 0.35rem 0 0.35rem; }
+
+.answer h3, .answer h4, .answer h5, .answer h6 {
+  color: var(--text);
+  line-height: 1.4;
+  margin: 1.1rem 0 0.5rem;
+}
+.answer > h3:first-child, .answer > h4:first-child { margin-top: 0.2rem; }
+.answer h3 { font-size: 1.05rem; border-bottom: 1px solid var(--border); padding-bottom: 0.3rem; }
+.answer h4 { font-size: 0.98rem; }
+.answer h5, .answer h6 { font-size: 0.92rem; color: var(--accent); }
+
+.answer strong { font-weight: 600; color: var(--text); }
+
+.answer code {
+  font-family: Consolas, monospace;
+  font-size: 0.85em;
+  background: var(--accent-soft);
+  border-radius: 4px;
+  padding: 0.1em 0.35em;
+}
+.answer pre {
+  background: #efe0ba;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.7rem 0.9rem;
+  overflow-x: auto;
+  margin: 0.4rem 0 0.9rem;
+}
+.answer pre code { background: none; padding: 0; font-size: 0.83rem; }
+
+/* Mode toggle + scholar picker */
+.ask-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1.25rem;
+  align-items: center;
+  margin-top: 0.75rem;
+}
+/* "Mode" label above the Council/Mentor toggle. */
+.mode-group {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.3rem;
+}
+.mode-label-row { display: flex; align-items: center; gap: 0.35rem; }
+/* Shown only while sessionConfigLocked is true (see app.js) — a small,
+   non-color signal (title tooltip carries the actual explanation) that Mode
+   and the Scholar cards below are frozen until Reset. */
+.session-lock-icon { font-size: 0.72rem; line-height: 1; opacity: 0.8; }
+.mode-label {
+  font-size: 0.66rem;
+  font-weight: 600;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+/* Toggle + the "Use Vault" Session option side by side. */
+.mode-row { display: flex; align-items: center; gap: 0.8rem; flex-wrap: wrap; }
+.mode-toggle {
+  display: inline-flex;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  overflow: hidden;
+}
+/* Same visual language as .auto-export-label (the Obsidian auto-export
+   checkbox) — muted inline checkbox+label. Locked state mirrors the Mode
+   buttons: disabled input, muted further, lock tooltip (see
+   lockSessionConfig() in app.js). */
+.use-vault-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.85rem;
+  color: var(--muted);
+  cursor: pointer;
+  margin: 0;
+  white-space: nowrap;
+}
+.use-vault-label input { margin: 0; }
+.use-vault-label:has(input:disabled) { opacity: 0.7; cursor: default; }
+.mode-btn {
+  background: transparent;
+  color: var(--muted);
+  border: none;
+  border-radius: 0;
+  padding: 0.35rem 0.95rem;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+.mode-btn.is-active { background: var(--accent); color: #f7ecd2; }
+/* Locked state: muted, not hidden — provider/model info on the Scholar
+   cards below stays fully readable. Default cursor, no hover response
+   (existing :hover:not(:disabled) rules already gate that off). */
+.mode-btn:disabled { opacity: 0.7; cursor: default; }
+
+.scholar-picker { position: relative; display: flex; flex-wrap: wrap; gap: 0.5rem; width: 100%; }
+/* Scholar identity cards: an AI research team's designations, not plain
+   toggles. Equal flexible widths — cards shrink evenly and wrap cleanly at
+   narrow widths, never overflowing the workspace. Codename over vendor ·
+   model; a check/radio indicator carries the selection state so it never
+   relies on border color alone. */
+.scholar-chip {
+  /* The .chip-hover dossier is position: fixed and placed by JS
+     (positionChipHover() in app.js), so this doesn't need to be a
+     positioned ancestor for it. */
+  flex: 1 1 8rem;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-rows: auto auto;
+  column-gap: 0.45rem;
+  row-gap: 0.15rem;
+  align-items: center;
+  background: var(--panel-inset);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0.5rem 0.65rem;
+  font-weight: 500;
+  text-align: left;
+  box-shadow: none;
+  transition: border-color 0.12s ease, box-shadow 0.12s ease,
+    background-color 0.12s ease;
+}
+.scholar-chip .chip-name {
+  grid-row: 1;
+  font-size: 0.88rem;
+  font-weight: 700;
+  text-transform: uppercase; /* codename presentation */
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.scholar-chip .chip-tag {
+  grid-column: 2;
+  font-size: 0.68rem;
+  color: var(--muted);
+  font-weight: 400;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/* Selection indicator: checkbox in Council, radio in Mentor. */
+.chip-check {
+  grid-row: 1;
+  width: 0.9rem;
+  height: 0.9rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-size: 0.62rem;
+  line-height: 1;
+}
+.scholar-chip.is-on .chip-check::after { content: "✓"; }
+.scholar-picker.single-mode .chip-check { border-radius: 50%; }
+.scholar-picker.single-mode .scholar-chip.is-on .chip-check::after {
+  content: "";
+  width: 0.38rem;
+  height: 0.38rem;
+  border-radius: 50%;
+  background: currentColor;
+}
+.scholar-chip:disabled { opacity: 0.45; cursor: not-allowed; }
+.scholar-picker.single-mode .scholar-chip.is-on { background: var(--accent-soft); }
+
+/* Hover panel: the Scholar's dossier. position: fixed (viewport-relative,
+   not anchored to any ancestor) so it can NEVER be clipped by
+   #interaction-workspace's own overflow: hidden, the discussion workspace's
+   scroll, the divider, or any other overflow:hidden/auto ancestor along the
+   way up to #chat-panel — fixed positioning escapes ancestor overflow
+   clipping unconditionally (the one thing that would trap it, a transformed/
+   filtered/contain'd ancestor, doesn't exist anywhere in this chain).
+   top/left are computed and written by positionChipHover() (app.js) on
+   hover/focus, which measures the specific chip's live position and flips
+   above<->below and clamps left<->right so the popup always stays fully
+   inside the viewport regardless of which edge the card is near. Appears
+   after a short delay, fades out smoothly, opens from keyboard focus too.
+   Rows grow (level, XP, response count, Judge score, last used, configure)
+   without changing the card face. */
+.scholar-chip .chip-hover {
+  position: fixed;
+  width: min(300px, calc(100vw - 1rem));
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  background: var(--card);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.45);
+  padding: 0.6rem 0.75rem;
+  z-index: 40;
+  pointer-events: none;
+  font-weight: 400;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(4px);
+  transition: opacity 0.16s ease, transform 0.16s ease, visibility 0s linear 0.16s;
+}
+/* Direction-aware slide: when positionChipHover() flips the popup below the
+   card (not enough room above), it should settle downward instead of
+   sliding the wrong way through the card. */
+.scholar-chip .chip-hover[data-placement="below"] { transform: translateY(-4px); }
+.scholar-chip .chip-hover.is-visible {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+  transition-delay: 0.3s;
+}
+.chip-hover-title {
+  font-size: 0.9rem;
+  font-weight: 600;
+  padding-bottom: 0.3rem;
+  border-bottom: 1px solid var(--border);
+}
+/* Official English identity title ("The Architect") shown under a localized
+   name; hidden when the name IS the English title (no element rendered). The
+   divider moves from the title to this line when it is present. */
+.chip-hover-title:has(+ .chip-hover-en) { border-bottom: none; padding-bottom: 0.05rem; }
+.chip-hover-en {
+  font-size: 0.72rem;
+  color: var(--muted);
+  margin-top: -0.15rem;
+  padding-bottom: 0.3rem;
+  border-bottom: 1px solid var(--border);
+}
+.chip-hover-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 1.2rem;
+  font-size: 0.75rem;
+}
+.chip-hover-row b { color: var(--muted); font-weight: 500; flex: 0 0 auto; }
+.chip-hover-row > span { text-align: right; }
+
+/* Session header */
+.session-header { display: flex; flex-direction: column; gap: 0.6rem; }
+/* Row 1: title + Save to Vault — never covering the tabs above or the
+   answer/copy/fullscreen controls below, since this is its own row between
+   them. The save-path message used to live here too (in .sh-save-area) —
+   moved to its own full-width row below (.sh-save-msg) because a long saved
+   file path has no upper bound on length, and a flex-shrink:0 sibling
+   competing with the title for this row's width is exactly what previously
+   squeezed .sh-question down to a sliver, forcing CJK text (which wraps
+   between ANY two characters once a line can't fit even one full word) into
+   one-character-per-line. */
+.sh-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 0.75rem; }
+/* The primary content of this row. flex: 1 1 auto lets it actually CLAIM
+   the row's available space (the previous unset default of flex: 0 1 auto
+   only ever shrinks, never grows, so a merely-adequate .sh-save-area could
+   leave the title narrower than necessary even with room to spare).
+   min-width: 0 is what lets a flex child shrink below its own unconstrained
+   content width at all — without it, a long title can push .sh-top (and
+   the panel) wider instead of wrapping in place. word-break: normal +
+   overflow-wrap: break-word (never break-all) wraps only at real boundaries
+   — spaces for Latin scripts, CJK's own standard inter-character break
+   points for Chinese/Japanese/Korean — never mid-character for a "word"
+   that has none to break. */
+.sh-question {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: 1.05rem;
+  color: var(--text);
+  font-weight: 600;
+  word-break: normal;
+  overflow-wrap: break-word;
+  /* The header is a compact identity strip, not the question's reading
+     surface: without a height cap, a multi-thousand-character question grows
+     this row past the whole viewport and squeezes the discussion workspace
+     (the Grand Sage panel, scholar answers, composer) to zero height below
+     the fold — the run looks stuck showing only the submitted prompt. Cap at
+     a few lines and scroll the rest inside the strip; the full text stays
+     reachable here and in sessionState.question. */
+  max-height: 6.6em;
+  overflow-y: auto;
+}
+.sh-save-area {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.3rem;
+  flex-shrink: 0;
+}
+/* Hidden until the Session has a valid answer to save (see
+   renderSessionHeader() in app.js) — never visible before that. */
+.sh-save-btn { white-space: nowrap; }
+/* Row 3: the Save status/path message. Single-line + ellipsis so an
+   arbitrarily long saved-file path can never widen this row (or force the
+   title/anything else to shrink) — the full text stays reachable via the
+   title tooltip (see setHeaderMsg() in app.js). :empty collapses the row
+   to nothing before the first save, instead of leaving a blank gap. */
+.sh-save-msg {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+  font-size: 0.82rem;
+}
+.sh-save-msg:empty { display: none; }
+.sh-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 1.1rem;
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+.sh-item b { color: var(--text); font-weight: 600; }
+.sh-item code { color: var(--accent); font-size: 0.76rem; }
+.badge {
+  display: inline-block;
+  padding: 0.05rem 0.45rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  border: 1px solid var(--border);
+}
+.badge.status-active { color: var(--accent); }
+.badge.status-saved { color: var(--ok); border-color: var(--ok); }
+.badge.vault-unsaved { color: var(--warn); border-color: var(--warn); }
+.badge.vault-saved { color: var(--ok); border-color: var(--ok); }
+#reset-session { background: transparent; color: var(--warn); border: 1px solid var(--warn); }
+
+/* Optional Obsidian export: a quiet secondary row near the save status —
+   inline and non-blocking, visually subordinate to Save to Vault. */
+.obsidian-export-row {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  flex-wrap: wrap;
+  margin-top: 0.35rem;
+  font-size: 0.78rem;
+}
+#export-obsidian {
+  font-size: 0.78rem;
+  padding: 0.25rem 0.6rem;
+  background: transparent;
+  color: var(--accent);
+  border: 1px solid var(--accent);
+  border-radius: 6px;
+}
+#export-obsidian.is-exported {
+  color: var(--ok);
+  border-color: var(--ok);
+  opacity: 0.9;
+}
+.auto-export-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: var(--muted);
+  cursor: pointer;
+  margin: 0;
+}
+.auto-export-label input { margin: 0; }
+
+/* Conversation: tabs + tabbed answer + session chat */
+.conversation { display: flex; flex-direction: column; gap: 0.75rem; }
+.tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 0.5rem;
+}
+.tab {
+  background: var(--btn-face);
+  color: var(--text);
+  border: 2px solid var(--border);
+  border-radius: 3px;
+  box-shadow: 2px 2px 0 var(--btn-shadow);
+  padding: 0.35rem 0.9rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+.tab:hover { background: #fff3d6; }
+.tab.is-active { background: #eebd6a; transform: translate(1px, 1px); box-shadow: 1px 1px 0 var(--btn-shadow); }
+/* Per-tab run-state glyph (⏳/✓/⚠ — see syncTabStatuses() in app.js): shows
+   each Scholar's (and the Grand Sage's) own progress while a run is in
+   flight, so one failed Scholar is visible without opening its tab. */
+.tab-status { margin-left: 0.35rem; font-size: 0.85em; }
+.tab-status:empty { display: none; }
+.tab-status.is-loading { animation: tab-status-pulse 1.4s ease-in-out infinite; }
+@keyframes tab-status-pulse {
+  50% { opacity: 0.3; }
+}
+.tab-content { min-height: 6rem; }
+/* Failed-scholar recovery actions inside the tab panel (see
+   appendScholarRetryActions() in app.js) and the "regenerate ruling" row on
+   a stale summary. Compact secondary buttons; the inline change-model form
+   wraps below them on narrow panels. */
+.scholar-retry-actions,
+.summary-regen-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.8rem;
+}
+.retry-action-btn { font-size: 0.82rem; padding: 0.25rem 0.7rem; }
+.retry-model-form { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 0.4rem; }
+.retry-model-form select { max-width: 16rem; font-size: 0.82rem; }
+.summary-regen-note { font-size: 0.82rem; color: var(--muted); }
+
+/* Copy raw Markdown: icon-only control (two overlapping sheets) in the answer
+   panel's top-right, and a matching one on each assistant chat bubble. */
+.answer-wrap { position: relative; }
+.answer-wrap .tab-content { padding-right: 3rem; }
+
+/* -------------------------------------------------- workspace split (top)
+   #discussion-workspace is the ONE scrollable region: Session Summary
+   (collapsible — see setSessionSummaryExpanded() in app.js) followed by the
+   Conversation thread (#chat-log), sharing a single scrollbar so the whole
+   thing reads as one continuous discussion rather than stacked panels. */
+.discussion-workspace {
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  min-height: 0;
+}
+/* Empty/loading state shown in place of Session Summary before a Session
+   exists and while the first question is in flight (see
+   maybeRevealSessionSummary() in app.js). Centered in whatever space the
+   pre-session layout below gives the discussion workspace. */
+.discussion-empty {
+  flex: 1 1 auto;
+  display: flex;
+  /* Two stacked lines: the greeting above its instruction. Column direction
+     is the only layout change — the slot is still centered in whatever space
+     the pre-session layout gives it. */
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  color: var(--muted);
+  font-size: 0.95rem;
+  padding: 1.5rem;
+  gap: 0.45rem;
+}
+/* Primary welcome: slightly larger and brighter than the instruction under
+   it, so the pair reads as greeting-then-hint rather than two equal lines. */
+.discussion-empty-welcome {
+  margin: 0;
+  font-size: 1.08rem;
+  color: var(--text);
+}
+/* Secondary instruction — keeps the muted tone the empty state always had.
+   Also carries the run progress message, which is why it is never dimmed
+   further than this. */
+.discussion-empty-hint {
+  margin: 0;
+}
+/* Fatal-run-failure state — same centered slot as .discussion-empty (they
+   are never shown at the same time), warn-toned so it reads as an outcome,
+   not a neutral status message. */
+.session-error {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 0.4rem;
+  padding: 1.5rem;
+}
+.session-error-title { font-weight: 700; color: var(--warn); font-size: 1.05rem; }
+.session-error-message { color: var(--muted); font-size: 0.9rem; max-width: 32rem; }
+
+/* Lost Session recovery — shares .session-error's centered slot and warn
+   title. Unlike the other two it appears BELOW a discussion that is still on
+   screen (the content is deliberately never destroyed), so it does not take
+   the full flex slot and carries a top rule to separate it from the ruling
+   above. */
+.session-lost {
+  flex: 0 0 auto;
+  border-top: 1px solid var(--border);
+  padding: 1.1rem 1.5rem;
+}
+.session-lost-actions { justify-content: center; margin-top: 0.2rem; }
+
+/* Council Pre-check failure — shares .session-error's centered slot/warn
+   title, but its body is a left-aligned per-participant list rather than a
+   single centered message (can be up to four rows: every checked Scholar +
+   the Grand Sage). */
+.council-precheck-error-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  width: 100%;
+  max-width: 34rem;
+  text-align: left;
+  margin: 0.3rem 0;
+}
+.council-precheck-row {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.5rem 0.7rem;
+  background: var(--card);
+}
+.council-precheck-row-role { font-weight: 700; color: var(--text); font-size: 0.92rem; }
+.council-precheck-row-model { color: var(--muted); font-size: 0.8rem; margin-top: 0.1rem; }
+.council-precheck-row-message { color: var(--warn); font-size: 0.85rem; margin-top: 0.3rem; }
+.council-precheck-error-actions { justify-content: center; }
+
+/* Settings → Council Model Check → "Check Models Now" manual result panel.
+   Success is a single line in the same ok tone as .settings-msg.ok/.badge
+   status-saved; failure reuses the SAME .council-precheck-row* classes
+   above (unchanged), just inside this smaller, Settings-scoped container
+   instead of the full-width Send-flow error block. */
+.council-check-manual-result { margin-top: 0.6rem; display: flex; flex-direction: column; gap: 0.5rem; }
+.council-check-manual-result.is-ok { color: var(--ok); font-size: 0.9rem; font-weight: 600; }
+.session-summary { display: flex; flex-direction: column; }
+/* The primary report for the current Session — a full-width, clearly
+   clickable header (not just a small label) with elevated weight/size and
+   a subtle card treatment, so it reads as the top of the discussion rather
+   than a minor disclosure control. */
+.session-summary-toggle {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 0.5rem;
+  background: var(--card);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.5rem 0.75rem;
+  margin-bottom: 0.5rem;
+  font-size: 0.94rem;
+  font-weight: 700;
+  text-align: left;
+  cursor: pointer;
+}
+.session-summary-toggle:hover { border-color: var(--accent); background: var(--accent-soft); }
+.ss-caret { font-size: 0.78rem; line-height: 1; color: var(--accent); flex: 0 0 auto; }
+/* Collapsed: the answer box itself is hidden, only the toggle row remains —
+   the original ruling is preserved underneath, never discarded. */
+.session-summary.is-collapsed .answer-wrap { display: none; }
+
+/* Divider between the top (discussion) and bottom (interaction) workspaces —
+   a full-width VS Code/Obsidian-style splitter: ONE subtle centered line
+   (.wd-line, either side) with a centered grip glyph (.wd-grip), not a
+   multi-line sandwich. See initWorkspaceDivider() (app.js): before the
+   first drag both halves keep their normal flex proportions untouched;
+   dragging locks in an explicit height for the top half from that point on,
+   clamped so neither half can collapse below a usable size or push the
+   other past the space actually available. Drag updates are rAF-batched
+   directly on this element's sibling (#discussion-workspace), never here. */
+.workspace-divider {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  height: 14px;
+  margin: 0.15rem 0;
+  cursor: ns-resize;
+  touch-action: none;
+  user-select: none;
+  opacity: 0.6;
+}
+.wd-line { flex: 1 1 auto; height: 1px; background: var(--border); }
+.wd-grip { flex: 0 0 auto; color: var(--muted); font-size: 0.85rem; line-height: 1; }
+.workspace-divider:hover,
+.workspace-divider.is-dragging { opacity: 1; }
+.workspace-divider:hover .wd-line,
+.workspace-divider.is-dragging .wd-line { background: var(--accent); }
+.workspace-divider:hover .wd-grip,
+.workspace-divider.is-dragging .wd-grip { color: var(--accent); }
+
+/* Drag performance: suspend any transition on the resized element for the
+   duration of the drag so nothing fights the constant rAF-batched height
+   writes (see initWorkspaceDivider(), app.js). #discussion-workspace has no
+   transition of its own today, but scholar-chip-style hover/box-shadow
+   transitions elsewhere in the panel share ancestors during layout, so this
+   is a deliberate, cheap guarantee rather than a fix for one specific rule. */
+.discussion-workspace.is-resizing,
+.discussion-workspace.is-resizing * { transition: none !important; }
+
+/* -------------------------------------------------- workspace split (bottom)
+   Locked Mode/Scholar controls, the one persistent input, Quick Questions,
+   and Reset/Send. Fills whatever height the divider leaves it. */
+.interaction-workspace {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  min-height: 0;
+}
+
+.copy-btn,
+.chat-copy {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.7rem;
+  height: 1.7rem;
+  padding: 0;
+  background: transparent;
+  color: var(--muted);
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  position: absolute;
+  z-index: 2;
+}
+.copy-btn { top: 0.45rem; right: 1.35rem; } /* clear of the discussion workspace's outer scrollbar */
+.chat-copy { top: 0.4rem; right: 0.45rem; }
+.copy-btn:hover,
+.chat-copy:hover { background: var(--accent-soft); color: var(--text); }
+.copy-btn:disabled,
+.chat-copy:disabled { opacity: 1; cursor: default; background: transparent; }
+.copy-btn.is-copied,
+.chat-copy.is-copied { color: #7dc87f; }
+.copy-btn svg,
+.chat-copy svg { display: block; }
+/* Judge Chat */
+.judge-chat-hint { margin: 0 0 0.6rem; }
+
+/* Quick Questions disclosure — collapsed by default (initQuickActionsToggle
+   in app.js), bottom-left of the interaction workspace, below the input. A
+   compact label + caret button, not a dropdown/modal: the chip list it
+   controls sits directly beneath it in normal flow. A chip bypasses the
+   input entirely — see the click handler in configureChatForMode() — so
+   nothing here ever touches #question. */
+.quick-actions-wrap { align-self: flex-start; }
+.quick-actions-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: transparent;
+  color: var(--muted);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 0.25rem 0.7rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.quick-actions-toggle:hover { border-color: var(--accent); color: var(--text); }
+.qa-caret { font-size: 0.7rem; line-height: 1; }
+
+.quick-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.5rem;
+  margin-bottom: 0.75rem;
+  /* A narrow panel can wrap all ten chips into many rows — capped and
+     internally scrollable so an expansion can never push Reset/Send (or
+     anything else) past the panel's bottom edge, matching how the
+     discussion workspace scrolls internally rather than overflowing. */
+  max-height: 9rem;
+  overflow-y: auto;
+}
+
+.quick-action {
+  background: transparent;
+  color: var(--accent);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 0.3rem 0.75rem;
+  font-size: 0.82rem;
+  font-weight: 400;
+  white-space: nowrap;
+}
+.quick-action:hover:not(:disabled) { border-color: var(--accent); }
+.quick-action:disabled { cursor: wait; }
+
+/* No independent scroll/card box: #chat-log flows directly inside
+   #discussion-workspace, which is the one scrollable region (see above) —
+   the conversation reads as one continuous thread, not a nested panel. */
+.chat-log {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  margin-top: 0.6rem;
+}
+
+.chat-msg {
+  max-width: 85%;
+  border-radius: 8px;
+  padding: 0.6rem 0.85rem;
+  font-size: 0.9rem;
+  line-height: 1.7;
+  word-break: break-word;
+}
+
+.chat-user {
+  align-self: flex-end;
+  background: rgba(138, 90, 34, 0.18);
+  border: 1px solid rgba(138, 90, 34, 0.45);
+  white-space: pre-wrap;
+}
+
+/* Compact chips for the attachments one user turn submitted (also reused
+   under the session header's question and in Archives detail). They wrap
+   within the bubble and ellipsize long filenames — never widening the
+   conversation panel. Rendered from persisted metadata, so they survive
+   reloads and Archives; clicking opens the read-only preview dialog. */
+.turn-attachments {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  margin-bottom: 0.35rem;
+  white-space: normal; /* the bubble itself is pre-wrap */
+}
+.session-header .turn-attachments { margin: 0.3rem 0 0; }
+.turn-attachment-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  max-width: 14rem;
+  padding: 0.15rem 0.5rem;
+  font-size: 0.75rem;
+  background: var(--card);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  cursor: pointer;
+}
+.turn-attachment-chip:hover { border-color: var(--accent); }
+.turn-attachment-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Read-only attachment preview dialog: images fit the viewport preserving
+   aspect ratio; text scrolls in place, never editable. */
+.attachment-preview-body {
+  max-height: 65vh;
+  overflow-y: auto;
+}
+.attachment-preview-image {
+  display: block;
+  max-width: 100%;
+  max-height: 60vh;
+  object-fit: contain;
+  border-radius: 6px;
+}
+.attachment-preview-text {
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-size: 0.85rem;
+  line-height: 1.6;
+  font-family: inherit;
+}
+.attachment-preview-text.is-code {
+  font-family: "Cascadia Code", Consolas, "Courier New", monospace;
+  font-size: 0.8rem;
+}
+
+.chat-assistant {
+  align-self: flex-start;
+  background: var(--card);
+  border: 1px solid var(--border);
+  position: relative;
+  padding-right: 2.7rem; /* room for the copy icon */
+}
+
+.chat-pending {
+  align-self: flex-start;
+  color: var(--accent);
+  background: var(--card);
+  border: 1px dashed var(--border);
+}
+
+.chat-error {
+  align-self: flex-start;
+  color: var(--warn);
+  border: 1px solid var(--warn);
+  font-family: Consolas, monospace;
+  font-size: 0.85rem;
+}
+
+/* Reuse the answer typography inside judge bubbles. */
+.chat-assistant p { margin: 0 0 0.7rem; }
+.chat-assistant p:last-child { margin-bottom: 0; }
+.chat-assistant ul, .chat-assistant ol { margin: 0.3rem 0 0.9rem; padding-left: 1.5rem; }
+.chat-assistant li { margin: 0.35rem 0; }
+.chat-assistant h3, .chat-assistant h4, .chat-assistant h5, .chat-assistant h6 { line-height: 1.4; margin: 0.9rem 0 0.4rem; font-size: 0.95rem; }
+.chat-assistant > h3:first-child, .chat-assistant > h4:first-child { margin-top: 0; }
+.chat-assistant code {
+  font-family: Consolas, monospace;
+  font-size: 0.85em;
+  background: var(--accent-soft);
+  border-radius: 4px;
+  padding: 0.1em 0.35em;
+}
+.chat-assistant pre {
+  background: #efe0ba;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.7rem 0.9rem;
+  overflow-x: auto;
+  margin: 0.4rem 0 0.9rem;
+}
+.chat-assistant pre code { background: none; padding: 0; font-size: 0.83rem; }
+
+/* Settings dialog */
+dialog {
+  background: var(--card);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1.25rem 1.5rem;
+  width: min(620px, 94vw);
+  max-height: 90vh;
+}
+dialog::backdrop { background: rgba(0, 0, 0, 0.6); }
+
+dialog h2 { margin: 0 0 0.5rem; font-size: 1.1rem; }
+dialog code { color: var(--accent); }
+/* Model-failure pre-send warning's affected-model list. */
+#model-failure-warning-list { margin: 0.4rem 0; padding-left: 1.4rem; font-size: 0.9rem; }
+#model-failure-warning-list li { margin: 0.15rem 0; }
+
+/* Council Model Check dialog. The "Recommended" badge is a DIFFERENT concept
+   from the model-catalog "Recommended" badge (§11 of the spec) — reuses the
+   plain .badge shape but its own ok-toned modifier, never the model-badge
+   string/class, so the two are never visually or semantically conflated. */
+.badge-recommended { color: var(--ok); border-color: var(--ok); font-weight: 600; margin-bottom: 0.5rem; }
+#council-check-dialog .dialog-buttons .primary { border-color: var(--accent); color: var(--accent); }
+.council-check-auto-label {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin: 0.8rem 0 0.2rem;
+  cursor: pointer;
+}
+.council-check-auto-label input[type="checkbox"] { width: auto; margin: 0; }
+#council-check-settings-auto-wrap { margin-top: 0.2rem; }
+
+fieldset {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  margin: 0.75rem 0;
+  padding: 0.6rem 0.9rem 0.8rem;
+}
+legend { color: var(--muted); font-size: 0.85rem; padding: 0 0.35rem; }
+
+fieldset label { margin: 0.4rem 0 0; }
+
+input[type="password"], input[type="text"], select {
+  width: 100%;
+  margin-top: 0.25rem;
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.45rem 0.6rem;
+  font: inherit;
+}
+
+.key-state { font-size: 0.75rem; }
+.key-state.set { color: var(--ok); }
+.key-state.unset { color: var(--warn); }
+
+.error-text { color: var(--warn); font-size: 0.85rem; }
+.settings-msg { font-size: 0.9rem; margin: 0.6rem 0 0; font-weight: 600; }
+.settings-msg.ok { color: var(--ok); }
+.settings-msg.warn { color: var(--warn); }
+.field-note { margin: 0.4rem 0 0; }
+
+.model-row { display: flex; gap: 0.6rem; align-items: center; margin-top: 0.5rem; }
+.refresh-models {
+  background: transparent;
+  color: var(--accent);
+  border: 1px solid var(--border);
+  padding: 0.35rem 0.8rem;
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+.model-select { flex: 1; margin-top: 0; }
+.model-note { font-size: 0.8rem; margin: 0.4rem 0 0; }
+.model-note.warn { color: var(--warn); }
+.model-note.ok { color: var(--ok); }
+
+/* Compact Settings sections */
+.settings-section { margin: 0.6rem 0; }
+.settings-section legend { color: var(--text); font-size: 0.95rem; font-weight: 600; }
+
+/* Grand Sage + scholar assignment share a responsive provider/model grid */
+.assign-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 0.5rem 0.75rem;
+}
+.assign-field { margin: 0; font-size: 0.8rem; }
+.assign-status { font-size: 0.78rem; margin: 0.45rem 0 0; }
+.assign-status.ok { color: var(--ok); }
+.assign-status.warn { color: var(--warn); }
+
+/* Section 2 — provider enable toggles + expanding key panels */
+.provider-toggles { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+.provider-toggle {
+  background: transparent;
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 0.3rem 0.7rem;
+  font-size: 0.82rem;
+  font-weight: 500;
+  white-space: nowrap;
+}
+.provider-toggle.is-on { border-color: var(--accent); color: var(--accent); }
+.provider-toggle.locked { opacity: 0.7; cursor: not-allowed; }
+.provider-toggle .pt-box { font-size: 0.9rem; }
+
+.provider-panels { display: flex; flex-direction: column; gap: 0.5rem; margin-top: 0.6rem; }
+.provider-panel { border: 1px solid var(--border); border-radius: 6px; padding: 0.5rem 0.7rem; }
+.provider-panel-head { display: flex; justify-content: space-between; align-items: baseline; gap: 0.5rem; }
+.provider-panel-name { font-weight: 600; font-size: 0.9rem; }
+.provider-status { font-size: 0.76rem; }
+.provider-status.ok { color: var(--ok); }
+.provider-status.warn { color: var(--warn); }
+.provider-key-label { font-size: 0.8rem; margin: 0.35rem 0 0; }
+.provider-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; margin-top: 0.5rem; }
+
+/* Section 3 — scholar rows */
+.assign-row { padding: 0.55rem 0; border-bottom: 1px solid var(--border); }
+.assign-row:last-child { border-bottom: none; }
+.assign-row-head { display: flex; align-items: baseline; gap: 0.5rem; margin-bottom: 0.35rem; }
+.assign-row-head input[type="checkbox"] { width: auto; margin: 0; }
+.assign-name { font-size: 1rem; color: var(--text); flex: 1; }
+.assign-row-head .assign-status { margin: 0; }
+.slot-label { display: inline-block; font-size: 0.72rem; color: var(--muted); margin-right: 0.4rem; }
+
+.dialog-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.6rem;
+  margin-top: 1rem;
+}
+
+/* ------------------------------------------------------------- Archives */
+.archives-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  margin-bottom: 0.85rem;
+}
+.archives-header h2 { margin: 0 0 0.2rem; font-size: 1.15rem; }
+
+#archives-search { margin-bottom: 0.9rem; }
+
+.archive-list { display: flex; flex-direction: column; gap: 0.5rem; }
+
+.archive-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  width: 100%;
+  padding: 0.65rem 0.9rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.archive-item:hover { border-color: var(--accent); }
+.archive-item-main { min-width: 0; flex: 1; }
+.archive-item-title {
+  font-weight: 600;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* Compact metadata scan line: date • time • provider product names. */
+.archive-item-sub {
+  font-size: 0.82rem;
+  color: var(--muted);
+  margin-top: 0.2rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.archive-item-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.25rem;
+  font-size: 0.78rem;
+  color: var(--muted);
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+.archive-status-msg { color: var(--muted); text-align: center; padding: 2rem 1rem; }
+.archive-status-msg strong { display: block; color: var(--text); margin-bottom: 0.3rem; font-size: 1rem; }
+.archive-status-msg.warn { color: var(--warn); }
+
+/* Archive Discussion Threads: a multi-Session row group. A single-Session
+   thread never gets this wrapper — it renders as a plain .archive-item,
+   unchanged from before this feature existed. */
+.archive-thread { display: flex; flex-direction: column; gap: 0.35rem; }
+.archive-thread-header { gap: 0.7rem; }
+.archive-thread-toggle {
+  flex: 0 0 auto;
+  width: 1em;
+  text-align: center;
+  color: var(--muted);
+  font-size: 1.3em;
+}
+.archive-thread-count {
+  flex: 0 0 auto;
+  background: var(--wood-dark);
+  color: var(--btn-face);
+  font-weight: 700;
+  font-size: 0.94rem;
+  padding: 0.07rem 0.6rem;
+}
+.archive-thread-children {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding-left: 1.5rem;
+}
+.archive-thread-child-row { display: flex; align-items: center; gap: 0.35rem; }
+.archive-thread-connector { flex: 0 0 auto; color: var(--muted); font-size: 0.85rem; }
+.archive-thread-child-row .archive-item { flex: 1; min-width: 0; }
+
+/* Detail view */
+.archive-detail-title { margin: 0 0 0.3rem; font-size: 1.15rem; }
+.archive-detail-thread-position { font-size: 0.82rem; color: var(--muted); margin: -0.15rem 0 0.6rem; }
+.archive-detail-question {
+  font-size: 1.02rem;
+  font-weight: 600;
+  color: var(--text);
+  margin: 0.2rem 0 0.7rem;
+}
+.archive-detail-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 1.1rem;
+  font-size: 0.82rem;
+  color: var(--muted);
+  margin-bottom: 1rem;
+}
+.archive-detail-meta b { color: var(--text); font-weight: 600; }
+
+.archive-scholars { display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 1.1rem; }
+.archive-scholars details {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.55rem 0.75rem;
+  background: var(--bg);
+}
+.archive-scholars summary { cursor: pointer; font-weight: 600; color: var(--text); }
+.archive-scholars summary .muted { font-weight: 400; margin-left: 0.4rem; }
+.archive-scholars .answer { margin-top: 0.6rem; }
+
+.archive-synthesis {
+  border: 1px solid var(--accent);
+  border-left-width: 3px;
+  border-radius: 8px;
+  padding: 1rem 1.1rem;
+  background: rgba(138, 90, 34, 0.08);
+  margin-bottom: 1.1rem;
+}
+.archive-synthesis h3 { margin: 0 0 0.6rem; font-size: 1rem; color: var(--text); }
+
+/* Follow-up conversation thread (manual + Quick Question turns alike),
+   shown only when the saved archive record captured chat — reuses the
+   .chat-log/.chat-msg bubble classes from the live Conversation thread. */
+.archive-conversation { margin-bottom: 1.1rem; }
+.archive-conversation h3 { margin: 0 0 0.6rem; font-size: 1rem; color: var(--text); }
+.archive-conversation .chat-log { gap: 0.6rem; }
+
+.archive-vault-ref { font-size: 0.82rem; color: var(--muted); margin-bottom: 1.1rem; }
+
+/* Buttons right-aligned in order [Sync to Obsidian] [Remove from Archives];
+   the sync status/notification line takes the remaining left side
+   (margin-right: auto) and wraps under long paths instead of widening. */
+.archive-detail-actions { display: flex; justify-content: flex-end; align-items: center; gap: 0.6rem; }
+.archive-sync-msg { margin-right: auto; font-size: 0.82rem; color: var(--muted); min-width: 0; overflow-wrap: anywhere; }
+.archive-sync-msg.ok { color: var(--ok); }
+.archive-sync-msg.warn { color: var(--warn); }
+/* The inline "Open Vault menu" shortcut inside the not-configured prompt —
+   styled as a link, not a heavy button, so the prompt reads as one sentence. */
+.archive-sync-link {
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: inherit;
+  color: var(--accent);
+  text-decoration: underline;
+  cursor: pointer;
+}
+#archive-remove { background: transparent; color: var(--warn); border: 1px solid var(--warn); }
+
+#archive-detail-view { display: flex; flex-direction: column; gap: 0.9rem; }
+
+/* ---------------------------------------------- chat panel internal layout
+   The right panel is a fixed-height column: tabs on top, the response area
+   takes the remaining space (scrolling internally), then session actions and
+   the composer pinned to the bottom. */
+#chat-panel .tabs {
+  border-bottom: 2px solid var(--wood);
+  padding: 0.15rem 2.2rem 0.55rem 0.15rem; /* clear of the fullscreen icon */
+  flex: 0 0 auto;
+}
+#chat-panel .session-header {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  font-size: 0.8rem;
+  padding: 0.15rem 0.15rem 0;
+}
+#chat-panel .sh-question { font-size: 0.9rem; }
+#chat-panel .sh-save-msg { font-size: 0.75rem; }
+/* Narrow-panel breakpoint, keyed to #chat-panel's OWN width (see
+   container-type: inline-size on it above) rather than the full browser
+   viewport — this is what makes the header adapt correctly right after
+   Chat Fullscreen → split view, on window resize, and on language change
+   (a longer translated title/labels can cross the threshold too), with no
+   separate JS or body-class wiring needed. #chat-panel is 340–560px wide in
+   split view and unconstrained in Chat Fullscreen, so this only ever fires
+   in split view — fullscreen's wider arrangement is untouched. Below the
+   threshold, the title keeps the full row to itself instead of splitting it
+   with Save to Vault, giving CJK titles maximum width before any wrap. */
+@container (max-width: 480px) {
+  #chat-panel .sh-top {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  #chat-panel .sh-save-area {
+    align-items: flex-start;
+  }
+}
+#chat-panel .conversation {
+  flex: 1 1 0;
+  min-height: 0;
+  gap: 0.45rem;
+}
+/* #discussion-workspace holds the fill-available-space role .answer-wrap
+   used to hold directly — see initWorkspaceDivider() (app.js). It is the
+   ONE scrollable region (declared once in the base rule above); the box
+   inside it (.answer-wrap) no longer scrolls independently.
+   flex: 0 1 auto (grow:0) is deliberate: by default it takes only the
+   height its own content needs (and shrinks — via its own scroll — rather
+   than overflow if content exceeds what's left), so #interaction-workspace
+   below is the ONLY thing that ever claims leftover space and stretches to
+   the bottom edge. Dragging the divider (app.js) switches this to an
+   explicit pixel height instead; #interaction-workspace keeps absorbing
+   whatever remains either way. */
+#chat-panel #discussion-workspace { flex: 0 1 auto; min-height: 0; }
+#chat-panel .answer-wrap {
+  border: 2px solid var(--wood);
+  border-radius: 4px;
+  background: var(--panel-inset);
+}
+#chat-panel .tab-content.answer {
+  height: auto;
+  max-height: none;
+  overflow-y: visible;
+  border: none;
+  background: transparent;
+  color: var(--text);
+}
+#chat-panel .obsidian-export-row { flex: 0 0 auto; justify-content: flex-end; }
+/* #interaction-workspace is the sole flex-grow item at this level, so it
+   always occupies every pixel not claimed by #discussion-workspace —
+   stretching to the panel's bottom edge and resizing automatically with the
+   browser window, never leaving dead space below Reset/Send. Its own
+   children route that growth down to the input specifically (see
+   .composer/.composer-row/#question below) so Mode, Scholar cards, Quick
+   Questions, and Reset/Send all stay their natural size and the Reset/Send
+   row hugs the true bottom. */
+#chat-panel #interaction-workspace {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  /* min-height: 0 (rather than the browser's automatic content-based
+     minimum) hands the floor entirely to measureInteractionFloor()/
+     computeSplitBounds() in app.js, which measure this same live geometry
+     (Mode/Scholar cards, the one-line textarea floor, Quick Questions in
+     its current state, Reset/Send) to clamp how far the divider can be
+     dragged.
+     overflow: hidden (never auto/scroll) — a scrollbar here was the actual
+     bug: the divider's floor is now measured with a deliberate few-px
+     safety margin (see INTERACTION_FLOOR_SAFETY_PX, app.js) specifically so
+     this clamp never falls short in the first place. hidden is a silent
+     backstop for a rounding difference of a pixel or two, never a
+     substitute for the clamp being correct — Quick Questions' own chip list
+     is the one place genuine overflow is expected, and it scrolls itself
+     (see .quick-actions) rather than the whole workspace. */
+  min-height: 0;
+  overflow: hidden;
+  border-top: 2px solid var(--wood);
+  padding-top: 0.55rem;
+}
+#chat-panel .ask-controls { flex: 0 0 auto; margin-top: 0; gap: 0.5rem 0.75rem; }
+/* The input is the one element that grows/shrinks with the workspace —
+   everything else (Mode, Scholar cards, Quick Questions, Reset/Send) stays
+   its natural size, so the extra room always lands here instead of as
+   empty space beneath the Reset/Send row. min-height is deliberately just
+   over one visible line: the floor the workspace can shrink to before
+   anything else gives, per computeSplitBounds() above. */
+#chat-panel .composer { flex: 1 1 auto; min-height: 0; }
+#chat-panel .composer textarea { flex: 1 1 auto; min-height: 2.5rem; height: auto; }
+#chat-panel .quick-actions-wrap { flex: 0 0 auto; }
+#chat-panel .ask-row { flex: 0 0 auto; margin-top: 0; align-items: flex-end; }
+
+/* Pre-session layout (see maybeRevealSessionSummary()/performReset() in
+   app.js): before a Session has a real answer, the interaction workspace
+   docks to its natural bottom size like a messaging app's input bar, and
+   the empty discussion area absorbs all the leftover space above it — the
+   compact DEFAULT, not a locked state: the divider is visible and draggable
+   from the very first entry into this screen (see #workspace-divider in
+   index.html, no longer ever hidden). The :not(.split-adjusted) guard is
+   what makes that possible without a layout deadlock — the moment the user
+   drags for the first time (initWorkspaceDivider()'s endDrag(), app.js)
+   adds .split-adjusted, and both workspaces fall through to the normal
+   split rules below instead (top content-sized/explicit-height, bottom
+   flex: 1 1 auto absorbing the rest) — exactly like the post-session model,
+   just available earlier. The first successful response additionally
+   removes .pre-session outright, promoting the layout for good. */
+#chat-panel .conversation.pre-session:not(.split-adjusted) #discussion-workspace { flex: 1 1 auto; }
+#chat-panel .conversation.pre-session:not(.split-adjusted) #interaction-workspace { flex: 0 0 auto; }
+
+/* In chat fullscreen the conversation gets the whole viewport width; let the
+   reading column breathe instead of scaling the narrow panel. */
+body.chat-full #chat-panel #discussion-workspace,
+body.chat-full #chat-panel #interaction-workspace,
+body.chat-full #chat-panel .workspace-divider,
+body.chat-full #chat-panel .session-header,
+body.chat-full #chat-panel .tabs {
+  width: 100%;
+  max-width: 1100px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* --------------------------------------------------- archives inside shell */
+#archives-view {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  border: 4px solid var(--wood);
+  outline: 3px solid #2e1e0c;
+}
+
+/* -------------------------------------------------------------- responsive */
+@media (max-width: 900px) {
+  #app-shell { height: auto; min-height: 100vh; }
+  .main-layout { flex-direction: column; }
+  /* #app-split-divider is horizontal-only and hidden in this stacked
+     layout (updateAppSplitVisibility(), app.js) — it contributes no space
+     here, so the vertical gap between the stacked panels needs restoring. */
+  .main-layout { gap: 10px; }
+  #library-panel { min-height: 320px; }
+  #chat-panel { max-width: none; min-width: 0; }
+  #chat-panel #discussion-workspace { min-height: 14rem; }
+  .lib-nav .pixel-btn { min-width: 96px; font-size: 0.8rem; }
+}
+
+/* ======================================================= Aether workspace
+   The right panel is the Aether Workspace: a premium dark reading
+   environment scoped to #chat-panel and skinned entirely by the active
+   Theme Pack. Redefining the inherited custom properties re-skins every
+   token-driven component inside the panel; the explicit rules below only
+   cover values the parchment theme hardcodes (pixel button faces, wood
+   dividers, brass chat bubbles, parchment code blocks). The library panel
+   and dialogs keep the game theme; bright gold appears only as deliberate
+   accents — selection marks, Vault, key actions. */
+#chat-panel {
+  /* Every workspace token maps onto the active Theme Pack (--ws-*, defined
+     at the top of this file). The component rules below never name raw
+     colors, so swapping the theme re-skins the whole workspace. */
+  --bg: var(--ws-bg);
+  --panel-inset: var(--ws-panel);
+  --card: var(--ws-card);
+  --border: var(--ws-border);
+  --text: var(--ws-text);
+  --muted: var(--ws-muted);
+  --accent: var(--ws-accent);
+  --accent-soft: var(--ws-accent-soft);
+  --gold: var(--ws-gold);
+  --ok: var(--ws-ok);
+  --warn: var(--ws-warn);
+  /* Neutralize the pixel-button language inside the workspace. */
+  --btn-face: var(--ws-card);
+  --btn-shadow: transparent;
+  color: var(--text);
+  /* Native dark scrollbars and form controls inside the workspace. */
+  color-scheme: dark;
+  scrollbar-color: var(--ws-scrollbar) var(--ws-scrollbar-track);
+  /* The frame around the workspace: thin themed hairline on a deep line. */
+  border-color: var(--ws-border-strong);
+  outline-color: var(--ws-frame);
+}
+
+/* Focus ring: themed accent, consistent across controls. */
+#chat-panel :is(button, textarea, input, select):focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+/* Buttons: flat and quiet (original dark language) — soft accent-tint
+   hover, no parchment flash, no pixel press offset. */
+#chat-panel button { border-radius: 6px; box-shadow: none; }
+#chat-panel button:hover:not(:disabled) { background: var(--accent-soft); }
+#chat-panel button:active:not(:disabled) { transform: none; box-shadow: none; }
+
+/* Primary action: filled antique brass with deep ink. (ID specificity
+   keeps it filled through hover/active too.) */
+#chat-panel #run-council {
+  background: var(--accent);
+  color: var(--ws-accent-ink);
+  border: none;
+  border-radius: 6px;
+  box-shadow: none;
+}
+/* Save to Vault is the bridge back to the library: the one bright-gold
+   button. */
+#chat-panel #save-vault {
+  background: var(--gold);
+  color: var(--ws-accent-ink);
+  border: none;
+  border-radius: 6px;
+  box-shadow: none;
+}
+
+/* Scholar tabs: original flat tabs — muted text, no face, the active tab
+   lifts to the page background inside a hairline border. */
+#chat-panel .tab {
+  background: transparent;
+  color: var(--muted);
+  border: 1px solid transparent;
+  border-radius: 6px 6px 0 0;
+  box-shadow: none;
+  padding: 0.4rem 0.95rem;
+  font-weight: 500;
+  text-transform: uppercase; /* Scholar designations read as codenames */
+  letter-spacing: 0.04em;
+}
+#chat-panel .tab:hover:not(:disabled) { color: var(--text); background: var(--accent-soft); }
+#chat-panel .tab.is-active,
+#chat-panel .tab.is-active:hover:not(:disabled) {
+  color: var(--text);
+  background: var(--bg);
+  border-color: var(--border);
+  border-top: 2px solid var(--gold); /* gold selection mark */
+  transform: none;
+}
+
+/* Mode toggle: active side stays accent-filled, deep ink. */
+#chat-panel .mode-btn.is-active,
+#chat-panel .mode-btn.is-active:hover:not(:disabled) {
+  background: var(--accent);
+  color: var(--ws-accent-ink);
+}
+
+/* Wood dividers become hairline dark borders. */
+#chat-panel .tabs { border-bottom: 1px solid var(--border); }
+#chat-panel .answer-wrap { border: 1px solid var(--border); border-radius: 6px; }
+#chat-panel #interaction-workspace { border-top: 1px solid var(--border); }
+
+/* Chat bubbles: user messages tint with the theme accent. */
+#chat-panel .chat-user {
+  background: var(--accent-soft);
+  border-color: var(--ws-border-strong);
+}
+
+/* Code blocks sink one step below the background. */
+#chat-panel .answer pre,
+#chat-panel .chat-assistant pre { background: var(--ws-deep); }
+
+/* Vault status wears the library's gold. */
+#chat-panel .badge.vault-saved { color: var(--gold); border-color: var(--gold); }
+
+/* Scholar cards in the workspace: selected members step up to the card
+   surface with a restrained gold border and a filled gold check; the rest
+   sit quieter on the darker panel surface. Hover lifts without the generic
+   button wash. */
+/* Hover uses a border + glow transition, deliberately NOT a transform —
+   a transformed card would become the containing block for its absolutely
+   positioned dossier and break the full-row anchoring to the picker. */
+#chat-panel .scholar-chip:hover:not(:disabled) {
+  background: var(--panel-inset);
+  border-color: var(--ws-border-strong);
+  box-shadow: 0 0 0 1px var(--accent-soft), 0 3px 10px rgba(0, 0, 0, 0.35);
+}
+#chat-panel .scholar-chip:active:not(:disabled) { transform: none; }
+#chat-panel .scholar-chip.is-on {
+  background: var(--card);
+  border-color: var(--gold);
+}
+#chat-panel .scholar-chip.is-on:hover:not(:disabled) {
+  background: var(--card);
+  border-color: var(--gold);
+}
+#chat-panel .scholar-chip.is-on .chip-check {
+  background: var(--gold);
+  border-color: var(--gold);
+  color: var(--ws-accent-ink);
+}
+
+/* Mode segmented control: recessed track, brass-filled selection, quiet
+   hover on the unselected side. */
+#chat-panel .mode-toggle {
+  background: var(--ws-deep);
+  border: 1px solid var(--ws-border-strong);
+  padding: 2px;
+  gap: 2px;
+}
+#chat-panel .mode-btn { border-radius: 999px; padding: 0.3rem 0.9rem; }
+#chat-panel .mode-btn.is-active { font-weight: 600; }
+#chat-panel .mode-btn:hover:not(.is-active):not(:disabled) { color: var(--text); }
+
+/* Fullscreen toggle: a real control, not a floating glyph — filled card
+   face, visible border, soft depth, gold hover. */
+#chat-panel .fs-btn {
+  background: var(--card);
+  color: var(--text);
+  border: 1px solid var(--ws-border-strong);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+}
+#chat-panel .fs-btn:hover:not(:disabled) {
+  background: var(--accent-soft);
+  border-color: var(--gold);
+  color: var(--gold);
+}
+#chat-panel .fs-btn[aria-pressed="true"] {
+  background: var(--accent);
+  color: var(--ws-accent-ink);
+  border-color: var(--gold);
+}
+
+/* Chat fullscreen: the page frame around the workspace darkens too, so no
+   wooden ring surrounds the reading column. */
+body.chat-full { background: var(--ws-frame); }
+
+/* ===================================================== Batch B: MORE menu,
+   Learn, About, Tutorial.
+
+   The MORE dropdown deliberately carries the Vault dropdown's own classes
+   (.vault-control/.vault-split/.vault-menu), so it inherits that panel's
+   parchment styling wholesale — the only additions here are the disabled
+   state for a link whose URL is still a placeholder. */
+.vault-menu button[role="menuitem"][disabled] {
+  opacity: 0.45;
+  cursor: default;
+}
+.vault-menu button[role="menuitem"][disabled]:hover {
+  background: transparent;
+}
+
+/* ------------------------------------------------------------ Learn guide */
+#learn-dialog {
+  background: var(--bg);
+  color: var(--text);
+  border: 3px solid var(--wood);
+  outline: 2px solid #2e1e0c;
+  border-radius: 4px;
+  padding: 1.2rem 1.4rem;
+  min-width: min(720px, 94vw);
+  max-width: min(860px, 94vw);
+}
+#learn-dialog::backdrop { background: rgba(46, 30, 12, 0.55); }
+#learn-dialog h2 { margin: 0 0 0.8rem; font-size: 1.05rem; }
+.learn-body { display: flex; gap: 1rem; max-height: 62vh; }
+.learn-nav {
+  flex: 0 0 190px;
+  overflow-y: auto;
+  border-right: 1px solid var(--border);
+  padding-right: 0.6rem;
+}
+.learn-nav button {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  color: var(--text);
+  border: none;
+  border-radius: 4px;
+  padding: 0.32rem 0.5rem;
+  font: inherit;
+  font-size: 0.82rem;
+  cursor: pointer;
+}
+.learn-nav button:hover { background: var(--accent-soft); }
+.learn-nav button.is-active {
+  background: var(--accent-soft);
+  font-weight: 600;
+  color: var(--accent);
+}
+.learn-content { flex: 1 1 auto; overflow-y: auto; font-size: 0.85rem; line-height: 1.6; }
+.learn-content h3 { margin: 0 0 0.5rem; font-size: 0.95rem; }
+.learn-content p { margin: 0 0 0.6rem; }
+.learn-content ul { margin: 0 0 0.6rem; padding-left: 1.2rem; }
+.learn-content li { margin-bottom: 0.25rem; }
+
+/* ----------------------------------------------------------------- About */
+#about-dialog {
+  background: var(--bg);
+  color: var(--text);
+  border: 3px solid var(--wood);
+  outline: 2px solid #2e1e0c;
+  border-radius: 4px;
+  padding: 1.2rem 1.4rem;
+  min-width: min(380px, 92vw);
+  text-align: center;
+}
+#about-dialog::backdrop { background: rgba(46, 30, 12, 0.55); }
+#about-dialog h2 { margin: 0 0 0.6rem; font-size: 1rem; }
+.about-product { margin: 0 0 0.2rem; font-size: 1.15rem; font-weight: 600; }
+#about-dialog p { margin: 0 0 0.45rem; font-size: 0.85rem; }
+.about-links { list-style: none; margin: 0.6rem 0; padding: 0; }
+.about-links li { margin-bottom: 0.25rem; }
+.about-links button {
+  background: transparent;
+  border: none;
+  color: var(--accent);
+  font: inherit;
+  font-size: 0.85rem;
+  text-decoration: underline;
+  cursor: pointer;
+  padding: 0;
+}
+.about-attribution { margin-top: 0.8rem !important; font-size: 0.75rem !important; }
+
+/* -------------------------------------------------------------- Tutorial
+   Dim + ring + callout, all plain elements. The ring is a transparent box
+   with a huge outward box-shadow, which is what produces the "spotlight
+   cut-out" without needing a mask, canvas, or any library. */
+#tutorial-overlay { position: fixed; inset: 0; z-index: 200; }
+#tutorial-dim { position: absolute; inset: 0; background: rgba(20, 12, 4, 0.62); }
+#tutorial-ring {
+  position: absolute;
+  border: 2px solid var(--ws-gold, #e5b968);
+  border-radius: 6px;
+  box-shadow: 0 0 0 9999px rgba(20, 12, 4, 0.62);
+  pointer-events: none;
+  transition: all 0.18s ease-out;
+}
+/* With a ring present, the ring's own shadow IS the dim — the flat layer
+   would otherwise double it and wash the highlight out. */
+#tutorial-overlay:has(#tutorial-ring:not([hidden])) #tutorial-dim { background: transparent; }
+#tutorial-callout {
+  position: absolute;
+  width: min(340px, 88vw);
+  background: var(--bg);
+  color: var(--text);
+  border: 3px solid var(--wood);
+  outline: 2px solid #2e1e0c;
+  border-radius: 4px;
+  padding: 0.9rem 1rem;
+}
+.tutorial-step-count { font-size: 0.72rem; color: var(--muted); margin-bottom: 0.25rem; }
+#tutorial-callout h3 { margin: 0 0 0.4rem; font-size: 0.95rem; }
+#tutorial-callout p { margin: 0 0 0.8rem; font-size: 0.83rem; line-height: 1.55; white-space: pre-line; }
+.tutorial-actions { display: flex; align-items: center; gap: 0.4rem; }
+.tutorial-spacer { flex: 1 1 auto; }
+.tutorial-actions button {
+  background: var(--btn-face);
+  color: var(--text);
+  border: 2px solid var(--border);
+  border-radius: 3px;
+  box-shadow: 2px 2px 0 var(--btn-shadow);
+  font: inherit;
+  font-size: 0.8rem;
+  padding: 0.3rem 0.7rem;
+  cursor: pointer;
+}
+.tutorial-actions button:hover { background: #fff3d6; }
+.tutorial-actions button.primary { background: #eebd6a; font-weight: 600; }
+#tutorial-skip { box-shadow: none; border-color: transparent; background: transparent; color: var(--muted); }
+#tutorial-skip:hover { background: transparent; text-decoration: underline; }
+
+/* Clickable NPC interaction — the clicked-dialogue bubble's fade-out.
+   The pop on the Character itself is NOT here: applySceneObjectStyle writes
+   that element's transform as an inline style (position + horizontal flip),
+   which a class-level transform would replace, so the animation is built on
+   top of the current transform via the Web Animations API in app.js instead
+   (see playNpcClickAnimation). This rule only fades the bubble, which owns
+   its own transform and is safe to animate declaratively. */
+.character-bubble.is-fading-out {
+  opacity: 0;
+  transition: opacity 250ms ease-out;
+  pointer-events: none;
+}
+
+/* Runtime Stop — the ONE composer button turns red while a run is working
+   (see setRunButtonMode in app.js). Deliberately a modifier on the existing
+   button rather than a second control: Send and Stop are the same button in
+   the same place, so the player never has to look for it. */
+#run-council.is-stop {
+  background: var(--danger, #b3261e);
+  border-color: var(--danger, #b3261e);
+  color: #fff;
+}
+#run-council.is-stop:hover:not(:disabled) { filter: brightness(1.1); }
+#run-council.is-stop:disabled { opacity: 0.7; }
+
+/* The failure gate is a decision, not a notice: its two actions carry equal
+   visual weight so neither is the accidental default. */
+#failure-decision-dialog .dialog-buttons { gap: 0.5rem; }
+#failure-decision-reason { margin-top: 0.25rem; }
+
+/* Tutorial preview image (F8 UI > Tutorial, optional per step). Contained,
+   never cropped, and bounded so it can never push the navigation buttons out
+   of reach — the callout scrolls instead if the viewport is short. */
+#tutorial-image {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  max-height: min(38vh, 320px);
+  object-fit: contain;
+  object-position: center;
+  margin: 0 0 0.6rem;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.18);
+}
+#tutorial-image[hidden] { display: none; }
+#tutorial-callout {
+  max-height: 88vh;
+  overflow-y: auto;
+}
+/* Authored body text keeps its line breaks without any markup. */
+#tutorial-body { white-space: pre-line; }
+
+/* ==================================================== Author Preview
+   A deterministic, completed-Council presentation of the Workspace, used by
+   the first-run Tutorial (Steps 8-9) and by the dev-only F9 authoring
+   shortcut. ONE implementation serves both — see public/author-preview.js.
+
+   The mock content is mounted INSIDE the real #chat-panel, so it inherits
+   every --ws-* token and every Workspace rule exactly as real content does.
+   The real children are hidden rather than cleared, which is what makes
+   restoration exact: nothing is mutated, so nothing has to be rebuilt.
+
+   `display: contents` keeps the wrapper out of the layout entirely — the
+   mock sections become direct flex items of #chat-panel, laid out by the
+   real panel rules rather than by a nested container of our own. */
+body.author-preview-active #chat-panel > *:not(.author-preview) {
+  display: none !important;
+}
+.author-preview {
+  display: contents;
+}
+
+/* The Workspace styles its two primary buttons by ID — #run-council (accent)
+   and #save-vault (gold) — and an id cannot be duplicated onto a mock while
+   the real element is still in the document. These two rules are the ONLY
+   place the preview restates a Workspace style, and they restate it by
+   TOKEN, never by value: whatever the active theme sets is what renders.
+   Kept in step with the #chat-panel rules above. */
+.author-preview .ap-primary {
+  background: var(--accent);
+  color: var(--ws-accent-ink);
+  border: none;
+  border-radius: 6px;
+  box-shadow: none;
+}
+.author-preview .ap-vault {
+  background: var(--gold);
+  color: var(--ws-accent-ink);
+  border: none;
+  border-radius: 6px;
+  box-shadow: none;
+}
+/* Mock controls look live but do nothing (see the inert boundary in
+   public/author-preview.js) — the cursor says "inspect", not "click". */
+.author-preview button,
+.author-preview textarea,
+.author-preview input {
+  cursor: default;
+}
+
+/* The authoring way-out badge. Shown ONLY for the F9 path (the Tutorial
+   passes indicator:false — it has its own callout and its own Next button).
+   Deliberately in the editor's blue, never the Scene's palette: an authored
+   theme must not be able to make the way back invisible. */
+.ap-indicator {
+  position: fixed;
+  right: 12px;
+  bottom: 12px;
+  z-index: 300;
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  padding: 0.35rem 0.6rem;
+  border: 1px solid #2f5d8a;
+  border-radius: 4px;
+  background: rgba(13, 17, 23, 0.88);
+  color: #7fb4e8;
+  font: 11px/1.35 "Segoe UI", system-ui, sans-serif;
+  letter-spacing: 0.06em;
+  pointer-events: none;
+  user-select: none;
+}
+.ap-indicator-title { font-weight: 700; }
+.ap-indicator-hint { color: #8894a3; letter-spacing: 0.02em; }
+
+/* ============================================ First-run AI setup guidance
+   Shown only when the Tutorial is done and no provider has ever been
+   configured (see maybeShowAiSetupHint in app.js). Guidance, not a gate:
+   nothing here blocks a click, dims the page or opens a modal.
+
+   The highlight is drawn entirely with pseudo-elements. #open-settings has
+   its textContent rewritten on every locale change, so a real child node
+   would be destroyed — and re-created guidance would restart its animation
+   on every re-render. */
+.ai-setup-highlight { position: relative; }
+/* The soft golden outline. Its own element, so the button's existing
+   pixel-art border and press offset are untouched. */
+.ai-setup-highlight::before {
+  content: "";
+  position: absolute;
+  inset: -4px;
+  border: 2px solid var(--gold, #e5b968);
+  border-radius: 5px;
+  opacity: 0.75;
+  pointer-events: none;
+}
+/* One small particle travelling the border, continuously. Deliberately slow
+   and constant — no flashing, no pulsing, and `linear` so it never appears
+   to hesitate at the corners. */
+.ai-setup-highlight::after {
+  content: "";
+  position: absolute;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--gold, #e5b968);
+  box-shadow: 0 0 6px 2px rgba(229, 185, 104, 0.85);
+  pointer-events: none;
+  animation: ai-hint-orbit 6s linear infinite;
+}
+/* Four waypoints, one per corner: plain top/left keyframes work everywhere,
+   where offset-path would need a much newer engine for no visible gain. */
+@keyframes ai-hint-orbit {
+  0%   { top: -6px; left: -6px; }
+  25%  { top: -6px; left: calc(100% + 1px); }
+  50%  { top: calc(100% + 1px); left: calc(100% + 1px); }
+  75%  { top: calc(100% + 1px); left: -6px; }
+  100% { top: -6px; left: -6px; }
+}
+/* Anyone who prefers less motion still gets the outline — just no orbit. */
+@media (prefers-reduced-motion: reduce) {
+  .ai-setup-highlight::after { animation: none; opacity: 0; }
+}
+
+.ai-hint {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  max-width: 190px;
+  padding: 0.3rem 0.45rem;
+  background: var(--card);
+  color: var(--text);
+  border: 2px solid var(--gold, #e5b968);
+  border-radius: 4px;
+  font-size: 0.72rem;
+  line-height: 1.3;
+  box-shadow: 2px 2px 0 var(--btn-shadow);
+}
+.ai-hint-dismiss {
+  flex: 0 0 auto;
+  font: inherit;
+  line-height: 1;
+  padding: 0 0.2rem;
+  background: transparent;
+  border: none;
+  color: var(--muted);
+  cursor: pointer;
+  box-shadow: none;
+}
+.ai-hint-dismiss:hover { background: transparent; color: var(--text); }
+
+/* About's single outbound line — the product's own website. Every other
+   external destination lives in the MORE menu; About stays identity and
+   legal information only. */
+.about-website { margin-top: 0.6rem !important; }
+.about-website-link {
+  background: none;
+  border: none;
+  box-shadow: none;
+  padding: 0;
+  font: inherit;
+  color: var(--accent);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+/* Scene Light layer (Light System v1) — ONE composited overlay for every
+   Scene-owned light. Deliberately a sibling of the scene art, never a filter
+   on it: nothing is baked, and removing this element restores the unlit Scene
+   exactly. z-index sits above every depth band (DEPTH_Z_MAX = 1000000) and the
+   book hotspot (1000001) but below the F8 editor overlay (2000000), so lights
+   tint the art without covering authoring gizmos. pointer-events:none keeps
+   NPC clicks, the book hotspot and every editor interaction reaching through. */
+.scene-light-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 1000002;
+  pointer-events: none;
+}
+
+/* Projected Light Blocker shadows (Light Blocker v1) — fake 2D environmental
+   shadowing. z-index 5 puts it ABOVE the static background but BELOW every
+   scene object and existing ground shadow (sceneDepthZ's lowest value is 10),
+   which is the requested order: background -> projected environment shadows ->
+   ground shadows -> props/characters -> light overlays -> UI.
+   pointer-events:none so Y-sort, clicks and F8 overlays are untouched. */
+.scene-light-blocker-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  pointer-events: none;
+}
+.scene-light-blocker-layer svg { display: block; width: 100%; height: 100%; }

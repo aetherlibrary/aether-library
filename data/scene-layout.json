@@ -1,0 +1,570 @@
+{
+  "version": 3,
+  "objects": [
+    {
+      "id": "classic-omega",
+      "world": {
+        "x": 0.5,
+        "y": 0.3074074074074074
+      },
+      "width": 0.10377249317505306,
+      "z": 2,
+      "shadow": {
+        "enabled": true,
+        "asset": "assets/shared/shadows/shadow_medium.png",
+        "offsetX": 0,
+        "offsetY": -2,
+        "width": 88,
+        "height": 13,
+        "opacity": 0.6
+      },
+      "footCollider": {
+        "enabled": true,
+        "offsetX": -40.5,
+        "offsetY": -6,
+        "width": 81,
+        "height": 7
+      },
+      "homeSlotId": "omega_home",
+      "spawnSlotId": "omega_home",
+      "name": "Sage",
+      "gameplayRole": "grand_sage",
+      "bubble": {
+        "dialogueBackground": "assets/ui/bubble/classic_bubble_dialogue.png",
+        "thoughtBackground": "assets/ui/bubble/classic_bubble_dialogue.png",
+        "textFont": "",
+        "offsetX": 0,
+        "offsetY": 14,
+        "anchor": "sprite_top_center"
+      },
+      "playerInteraction": {
+        "enabled": true,
+        "hover": {
+          "effects": [
+            {
+              "type": "glow",
+              "size": 2,
+              "color": "#eebd6a",
+              "opacity": 0.7
+            }
+          ]
+        }
+      },
+      "kind": "npc",
+      "characterId": "classic_omega"
+    },
+    {
+      "id": "podium",
+      "world": {
+        "x": 0.5,
+        "y": 0.36406087162061573
+      },
+      "width": 0.1003,
+      "z": 3,
+      "shadow": {
+        "enabled": true,
+        "asset": "assets/shared/shadows/shadow_medium.png",
+        "offsetX": 0,
+        "offsetY": -12,
+        "width": 115,
+        "height": 43,
+        "opacity": 0.77
+      },
+      "collision": {
+        "enabled": true,
+        "shape": "ellipse",
+        "offsetX": -53.2,
+        "offsetY": -35.6,
+        "width": 106,
+        "height": 32.2
+      },
+      "slotId": "podium_anchor",
+      "groundOffsetX": 0.6630742730271777,
+      "groundOffsetY": -29.539000223421965,
+      "name": "Podium",
+      "kind": "prop"
+    },
+    {
+      "id": "npc_alpha",
+      "world": {
+        "x": 0.34375,
+        "y": 0.4777777777777778
+      },
+      "width": 0.0968703692501252,
+      "z": 2,
+      "shadow": {
+        "enabled": true,
+        "asset": "assets/shared/shadows/shadow_medium.png",
+        "offsetX": 0,
+        "offsetY": -1,
+        "width": 75,
+        "height": 14,
+        "opacity": 0.5
+      },
+      "footCollider": {
+        "enabled": true,
+        "offsetX": -40.5,
+        "offsetY": -6,
+        "width": 81,
+        "height": 7
+      },
+      "homeSlotId": "alpha_home",
+      "spawnSlotId": "alpha_home",
+      "name": "classic_alpha",
+      "gameplayRole": "scholar_alpha",
+      "assetId": "classic_alpha",
+      "bubble": {
+        "dialogueBackground": "assets/ui/bubble/classic_bubble_dialogue.png",
+        "thoughtBackground": "assets/ui/bubble/classic_bubble_dialogue.png",
+        "textFont": "",
+        "offsetX": 0,
+        "offsetY": 0,
+        "anchor": "sprite_top_center"
+      },
+      "playerInteraction": {
+        "enabled": true,
+        "hover": {
+          "effects": [
+            {
+              "type": "glow",
+              "size": 2,
+              "color": "#7cfda7",
+              "opacity": 0.7
+            }
+          ]
+        }
+      },
+      "kind": "npc",
+      "characterId": "classic_alpha",
+      "assetPath": "assets/characters/classic_alpha.png"
+    },
+    {
+      "id": "npc_beta",
+      "world": {
+        "x": 0.375,
+        "y": 0.6666666666666666
+      },
+      "width": 0.09751756108972674,
+      "z": 2,
+      "shadow": {
+        "enabled": true,
+        "asset": "assets/shared/shadows/shadow_medium.png",
+        "offsetX": 0,
+        "offsetY": -1,
+        "width": 60,
+        "height": 14,
+        "opacity": 0.5
+      },
+      "footCollider": {
+        "enabled": true,
+        "offsetX": -40.5,
+        "offsetY": -6,
+        "width": 81,
+        "height": 7
+      },
+      "homeSlotId": "beta_home",
+      "spawnSlotId": "beta_home",
+      "name": "beta",
+      "gameplayRole": "scholar_beta",
+      "assetId": "beta",
+      "bubble": {
+        "dialogueBackground": "assets/ui/bubble/classic_bubble_dialogue.png",
+        "thoughtBackground": "assets/ui/bubble/classic_bubble_dialogue.png",
+        "textFont": "",
+        "offsetX": 0,
+        "offsetY": 0,
+        "anchor": "sprite_top_center"
+      },
+      "playerInteraction": {
+        "enabled": true,
+        "hover": {
+          "effects": [
+            {
+              "type": "glow",
+              "size": 2,
+              "color": "#f1557c",
+              "opacity": 0.7
+            }
+          ]
+        }
+      },
+      "kind": "npc",
+      "characterId": "beta",
+      "assetPath": "assets/characters/beta.png"
+    },
+    {
+      "id": "npc_gamma",
+      "world": {
+        "x": 0.6229166666666667,
+        "y": 0.562962962962963
+      },
+      "width": 0.09593018161499295,
+      "z": 2,
+      "shadow": {
+        "enabled": true,
+        "asset": "assets/shared/shadows/shadow_medium.png",
+        "offsetX": 0,
+        "offsetY": -2,
+        "width": 72,
+        "height": 14,
+        "opacity": 0.5
+      },
+      "footCollider": {
+        "enabled": true,
+        "offsetX": -40.5,
+        "offsetY": -6,
+        "width": 81,
+        "height": 7
+      },
+      "homeSlotId": "gamma_home",
+      "spawnSlotId": "gamma_home",
+      "name": "gamma",
+      "gameplayRole": "scholar_gamma",
+      "assetId": "gamma",
+      "bubble": {
+        "dialogueBackground": "assets/ui/bubble/classic_bubble_dialogue.png",
+        "thoughtBackground": "assets/ui/bubble/classic_bubble_dialogue.png",
+        "textFont": "",
+        "offsetX": 0,
+        "offsetY": 0,
+        "anchor": "sprite_top_center"
+      },
+      "playerInteraction": {
+        "enabled": true,
+        "hover": {
+          "effects": [
+            {
+              "type": "glow",
+              "size": 2,
+              "color": "#68a9ee",
+              "opacity": 0.7
+            }
+          ]
+        }
+      },
+      "kind": "npc",
+      "characterId": "gamma",
+      "assetPath": "assets/characters/gamma.png"
+    }
+  ],
+  "zones": [
+    {
+      "id": "zone-6",
+      "type": "blocked",
+      "shape": "polygon",
+      "points": [
+        {
+          "x": 0.4503668774203703,
+          "y": 0.38758785020924424
+        },
+        {
+          "x": 0.5523527838788845,
+          "y": 0.3859761838210216
+        },
+        {
+          "x": 0.5623247383655307,
+          "y": 0.696217703034961
+        },
+        {
+          "x": 0.4394883843833009,
+          "y": 0.6946060636976521
+        }
+      ]
+    },
+    {
+      "id": "zone-14",
+      "type": "blocked",
+      "shape": "rect",
+      "rect": {
+        "x": 0.18668297812250084,
+        "y": 0.0008045153423589897,
+        "w": 0.6311190989447022,
+        "h": 0.1898656207967216
+      }
+    },
+    {
+      "id": "zone-15",
+      "type": "blocked",
+      "shape": "rect",
+      "rect": {
+        "x": -0.1395225412444155,
+        "y": 0.9919674171286343,
+        "w": 1.1789427286228846,
+        "h": 0.03218061369435954
+      }
+    },
+    {
+      "id": "zone-16",
+      "type": "blocked",
+      "shape": "rect",
+      "rect": {
+        "x": 0.991747516903836,
+        "y": 0.0003653131976037033,
+        "w": 0.050231571504330885,
+        "h": 1.0080226234719543
+      }
+    },
+    {
+      "id": "zone-17",
+      "type": "blocked",
+      "shape": "rect",
+      "rect": {
+        "x": -0.14151176971288862,
+        "y": -0.08239077761436062,
+        "w": 0.14805170364430104,
+        "h": 1.0804641047881234
+      }
+    }
+  ],
+  "characterSlots": [
+    {
+      "slotId": "core_book_wait",
+      "enabled": true,
+      "facingDirection": "up",
+      "slotBox": {
+        "width": 2,
+        "height": 2
+      },
+      "blockingOccupancy": true,
+      "gridX": 240,
+      "gridY": 144,
+      "x": 960,
+      "y": 576
+    },
+    {
+      "slotId": "wood_cabinet_small",
+      "enabled": true,
+      "facingDirection": "down",
+      "slotBox": {
+        "width": 4,
+        "height": 4
+      },
+      "blockingOccupancy": true,
+      "gridX": 311,
+      "gridY": 49,
+      "x": 1244,
+      "y": 196,
+      "ownerPropId": "wood_cabinet_01"
+    },
+    {
+      "slotId": "omega_home",
+      "enabled": true,
+      "facingDirection": "down",
+      "slotBox": {
+        "width": 1,
+        "height": 1
+      },
+      "blockingOccupancy": true,
+      "gridX": 240,
+      "gridY": 83,
+      "x": 960,
+      "y": 332
+    },
+    {
+      "slotId": "podium_anchor",
+      "enabled": true,
+      "facingDirection": "down",
+      "slotBox": {
+        "width": 4,
+        "height": 2
+      },
+      "blockingOccupancy": true,
+      "gridX": 240,
+      "gridY": 91,
+      "x": 960,
+      "y": 364,
+      "ownerPropId": "podium"
+    },
+    {
+      "slotId": "alpha_home",
+      "enabled": true,
+      "facingDirection": "down",
+      "slotBox": {
+        "width": 1,
+        "height": 1
+      },
+      "blockingOccupancy": true,
+      "gridX": 165,
+      "gridY": 129,
+      "x": 660,
+      "y": 516
+    },
+    {
+      "slotId": "beta_home",
+      "enabled": true,
+      "facingDirection": "down",
+      "slotBox": {
+        "width": 1,
+        "height": 1
+      },
+      "blockingOccupancy": true,
+      "gridX": 180,
+      "gridY": 180,
+      "x": 720,
+      "y": 720
+    },
+    {
+      "slotId": "gamma_home",
+      "enabled": true,
+      "facingDirection": "down",
+      "slotBox": {
+        "width": 1,
+        "height": 1
+      },
+      "blockingOccupancy": true,
+      "gridX": 299,
+      "gridY": 152,
+      "x": 1196,
+      "y": 608
+    }
+  ],
+  "characterRoles": [
+    {
+      "roleId": "sage",
+      "label": "SAGE",
+      "required": true,
+      "assignedCharacterId": "classic_omega",
+      "sceneObjectId": "classic-omega",
+      "order": 0
+    },
+    {
+      "roleId": "alpha",
+      "label": "ALPHA",
+      "required": true,
+      "assignedCharacterId": "classic_alpha",
+      "sceneObjectId": "npc_alpha",
+      "order": 1
+    },
+    {
+      "roleId": "beta",
+      "label": "BETA",
+      "required": true,
+      "assignedCharacterId": "beta",
+      "sceneObjectId": "npc_beta",
+      "order": 2
+    },
+    {
+      "roleId": "gamma",
+      "label": "GAMMA",
+      "required": true,
+      "assignedCharacterId": "gamma",
+      "sceneObjectId": "npc_gamma",
+      "order": 3
+    },
+    {
+      "roleId": "traveler",
+      "label": "TRAVELER_F",
+      "required": true,
+      "order": 4
+    },
+    {
+      "roleId": "pet",
+      "label": "PET",
+      "required": true,
+      "order": 5
+    },
+    {
+      "roleId": "traveler_m",
+      "label": "Traveler_M",
+      "required": false,
+      "order": 6
+    }
+  ],
+  "sceneMeta": {
+    "name": "classic_01",
+    "background": "assets/background/classic_library_bg.png",
+    "worldId": "",
+    "width": 1920,
+    "height": 1080,
+    "gridSize": 4
+  },
+  "lights": [],
+  "lightBlockers": [],
+  "world": {
+    "presetSource": "classic",
+    "customNames": {
+      "grand_sage": "",
+      "alpha": "",
+      "beta": "",
+      "gamma": "",
+      "traveler1": "",
+      "traveler2": "",
+      "pet": ""
+    },
+    "locales": {
+      "en": {
+        "identity": {
+          "grand_sage": "Grand Sage",
+          "alpha": "Architect",
+          "beta": "Oracle",
+          "gamma": "Analyst",
+          "traveler1": "Traveler",
+          "traveler2": "Traveler",
+          "pet": "Pet"
+        },
+        "libraryName": "Aether Library",
+        "worldDisplayName": "Classic"
+      },
+      "zh-TW": {
+        "identity": {
+          "grand_sage": "大智者",
+          "alpha": "謀者",
+          "beta": "墨者",
+          "gamma": "理者",
+          "traveler1": "旅者",
+          "traveler2": "旅者",
+          "pet": "寵物"
+        },
+        "libraryName": "Aether Library",
+        "worldDisplayName": "經典圖書館"
+      }
+    },
+    "theme": {
+      "defaultMode": "dark",
+      "dark": {
+        "surface": "#221a12",
+        "surfaceRaised": "#2a2016",
+        "surfaceCard": "#34281a",
+        "surfaceInset": "#1a140d",
+        "frame": "#120d08",
+        "text": "#f0e8d8",
+        "textMuted": "#a6957a",
+        "border": "#c4944a38",
+        "borderStrong": "#c4944a73",
+        "accent": "#c0954c",
+        "accentText": "#251807",
+        "accentSoft": "#c0954c24",
+        "highlight": "#e5b968",
+        "success": "#8caf6f",
+        "warning": "#d8a24d",
+        "scrollbar": "#4d3c26",
+        "scrollbarTrack": "#1c150e"
+      },
+      "light": {
+        "surface": "#f0ddb2",
+        "surfaceRaised": "#e6cd97",
+        "surfaceCard": "#dbba82",
+        "surfaceInset": "#f7ecd2",
+        "frame": "#5a4022",
+        "text": "#38260f",
+        "textMuted": "#7d6440",
+        "border": "#5a402259",
+        "borderStrong": "#5a40228c",
+        "accent": "#8a5a22",
+        "accentText": "#f7ecd2",
+        "accentSoft": "#8a5a2224",
+        "highlight": "#a06f1f",
+        "success": "#4c7a3f",
+        "warning": "#a2572c",
+        "scrollbar": "#c9ad74",
+        "scrollbarTrack": "#e6cd97"
+      }
+    },
+    "audio": {
+      "musicTrack": "",
+      "volume": 0.35,
+      "loop": true,
+      "autoplay": false
+    }
+  }
+}

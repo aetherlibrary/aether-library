@@ -1,0 +1,416 @@
+{
+  "version": 1,
+  "id": "default",
+  "locales": {
+    "en": [
+      {
+        "id": "getting-started",
+        "title": "Getting Started",
+        "blocks": [
+          {
+            "type": "p",
+            "text": "Getting started with Aether Library only takes a few simple steps. Once you're ready, you can begin discussing your ideas with AI Scholars."
+          },
+          {
+            "type": "list",
+            "items": [
+              "Open Settings and connect at least one AI provider.",
+              "Choose a Vault folder so discussions can be saved.",
+              "Click Aetherom to start your first discussion."
+            ]
+          }
+        ]
+      },
+      {
+        "id": "providers",
+        "title": "AI Providers & API Keys",
+        "blocks": [
+          {
+            "type": "p",
+            "text": "Aether Library does not currently include AI of its own. Connect your own AI provider accounts, and any API usage is managed by those providers."
+          },
+          {
+            "type": "p",
+            "text": "Add a key in Settings, enable the provider, and pick a model. Each Scholar and the Grand Sage can use a different provider and model — or all of them can share one."
+          },
+          {
+            "type": "p",
+            "text": "Once saved, API keys are stored locally on your device and are not displayed again in the interface."
+          }
+        ]
+      },
+      {
+        "id": "council",
+        "title": "Council Mode",
+        "blocks": [
+          {
+            "type": "p",
+            "text": "In Council Mode, each selected Scholar considers your question independently. The Grand Sage then reviews their answers and synthesizes them into a final conclusion."
+          },
+          {
+            "type": "p",
+            "text": "Use Council Mode when a question benefits from several viewpoints, or when you want disagreements surfaced rather than smoothed over."
+          },
+          {
+            "type": "p",
+            "text": "Scholars may share a provider — Council Mode never requires three different ones."
+          }
+        ]
+      },
+      {
+        "id": "mentor",
+        "title": "Mentor Mode",
+        "blocks": [
+          {
+            "type": "p",
+            "text": "In Mentor Mode, one Scholar answers you directly, and you can continue the conversation with that Scholar."
+          },
+          {
+            "type": "p",
+            "text": "Use Mentor Mode for focused questions, quick follow-ups, or when you already know whose perspective you want."
+          }
+        ]
+      },
+      {
+        "id": "model-check",
+        "title": "Model Check",
+        "blocks": [
+          {
+            "type": "p",
+            "text": "Before a session begins, Aether Library can make one very small request per participant to confirm the chosen models actually respond."
+          },
+          {
+            "type": "p",
+            "text": "This catches a retired model, a typo, or an expired key before a full Council run consumes additional API usage."
+          },
+          {
+            "type": "p",
+            "text": "You can run it yourself at any time from Settings, and you can choose whether it runs automatically before each session."
+          }
+        ]
+      },
+      {
+        "id": "vault",
+        "title": "Vault",
+        "blocks": [
+          {
+            "type": "p",
+            "text": "The Vault is your local storage folder for Aether Library. Saved discussions are stored as readable Markdown files that always remain yours."
+          },
+          {
+            "type": "p",
+            "text": "Nothing is written to the Vault until you choose to save a discussion."
+          }
+        ]
+      },
+      {
+        "id": "archives",
+        "title": "Archives",
+        "blocks": [
+          {
+            "type": "p",
+            "text": "Archives keeps your discussion history and lists it from newest to oldest. You can search by question, mode, Scholar, provider, or model."
+          },
+          {
+            "type": "p",
+            "text": "You can reopen a previous discussion or continue the conversation from where you left off. The Vault is different from Archives. It stores only the discussions you choose to save as Markdown files."
+          }
+        ]
+      },
+      {
+        "id": "obsidian",
+        "title": "Obsidian",
+        "blocks": [
+          {
+            "type": "p",
+            "text": "Optional. If you use Obsidian, you can sync selected Aether Library content to your Obsidian Vault."
+          },
+          {
+            "type": "p",
+            "text": "Aether Library works completely normally without Obsidian."
+          },
+          {
+            "type": "p",
+            "text": "You can choose what to sync after each discussion, or later sync saved discussions from Archives whenever you want."
+          }
+        ]
+      },
+      {
+        "id": "materials",
+        "title": "Materials",
+        "blocks": [
+          {
+            "type": "p",
+            "text": "You can attach images, PDFs, Markdown files, and other supported files to provide additional context for the Scholars."
+          },
+          {
+            "type": "p",
+            "text": "Files can be added by browsing, dragging and dropping, or pasting images directly. Attached material is sent only to the AI providers selected for that request, so attach only what you are comfortable sharing."
+          }
+        ]
+      },
+      {
+        "id": "privacy",
+        "title": "Privacy & Data",
+        "blocks": [
+          {
+            "type": "p",
+            "text": "Your Vault files are stored in the local folder you chose. Your API keys are held locally by the application and are not shown back through the interface."
+          },
+          {
+            "type": "p",
+            "text": "When you submit a question, that question and whatever context or material is needed to answer it are sent to the AI providers you selected. That part of your data does leave this computer."
+          },
+          {
+            "type": "p",
+            "text": "Aether Library therefore does not claim that everything always stays on your device — what you send to a provider is governed by that provider's own terms and privacy policy."
+          }
+        ]
+      },
+      {
+        "id": "api-usage",
+        "title": "API Usage",
+        "blocks": [
+          {
+            "type": "p",
+            "text": "Every request uses your own AI provider accounts, so usage appears on your bill with them."
+          },
+          {
+            "type": "list",
+            "items": [
+              "Mentor Mode generally makes the fewest requests — one Scholar per turn.",
+              "Council Mode generally uses more, because several Scholars answer and the Grand Sage then reviews them.",
+              "A model check makes one small additional request per participant."
+            ]
+          },
+          {
+            "type": "p",
+            "text": "Aether Library does not estimate monetary cost; check your provider's own dashboard for that."
+          }
+        ]
+      },
+      {
+        "id": "troubleshooting",
+        "title": "Troubleshooting",
+        "blocks": [
+          {
+            "type": "list",
+            "items": [
+              "A Scholar will not start: confirm its provider is enabled and has a valid key in Settings.",
+              "A model is rejected: it may have been retired or may not be available on your account — run a model check to confirm, then choose another model.",
+              "Nothing can be saved: choose a Vault folder first, and make sure the folder still exists.",
+              "Answers stop partway: the provider may be rate-limiting or timing out; wait briefly and try again.",
+              "Everything looks unconfigured: open Settings and check that your providers and models are configured correctly.",
+              "An attachment won't upload: make sure the file type is supported, or try attaching it again."
+            ]
+          }
+        ]
+      }
+    ],
+    "zh-TW": [
+      {
+        "id": "getting-started",
+        "title": "開始使用",
+        "blocks": [
+          {
+            "type": "p",
+            "text": "第一次使用 Aether Library，只需完成幾個簡單的步驟，即可開始與 AI 學者展開討論。"
+          },
+          {
+            "type": "list",
+            "items": [
+              "開啟「設定」，連接至少一個 AI 供應商。",
+              "選擇 Vault 資料夾，用來保存值得保留的討論。",
+              "點擊乙太之書（Aetherom），開始第一場討論。"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "providers",
+        "title": "AI 供應商與 API 金鑰",
+        "blocks": [
+          {
+            "type": "p",
+            "text": "Aether Library 現階段不提供內建 AI。請連接您自己的 AI 供應商帳戶，所有 API 用量皆依各供應商的帳戶規則計算。"
+          },
+          {
+            "type": "p",
+            "text": "在「設定」中填入 API 金鑰、啟用供應商並選擇模型。每位學者與大智者都可以使用不同的 AI 供應商與模型，也可以全部共用同一組設定。"
+          },
+          {
+            "type": "p",
+            "text": "API 金鑰會儲存在您的本機裝置，不會再次顯示於介面中。"
+          }
+        ]
+      },
+      {
+        "id": "council",
+        "title": "智囊團模式",
+        "blocks": [
+          {
+            "type": "p",
+            "text": "智囊團模式會由多位學者分別思考同一個問題，再交由大智者整合各方觀點，形成最終結論。"
+          },
+          {
+            "type": "p",
+            "text": "適合需要不同角度分析、比較觀點，或希望獲得更完整思考的問題。"
+          },
+          {
+            "type": "p",
+            "text": "所有學者都可以共用同一個 AI 供應商，並不需要分別使用不同的模型。"
+          }
+        ]
+      },
+      {
+        "id": "mentor",
+        "title": "導師模式",
+        "blocks": [
+          {
+            "type": "p",
+            "text": "導師模式由單一學者直接與您對話，適合持續追問與深入討論同一個主題。"
+          },
+          {
+            "type": "p",
+            "text": "適合快速提問、聚焦討論，或希望聽取特定學者觀點時使用。"
+          }
+        ]
+      },
+      {
+        "id": "model-check",
+        "title": "模型檢查",
+        "blocks": [
+          {
+            "type": "p",
+            "text": "開始智囊團前，可先確認所有參與的模型皆能正常回應。"
+          },
+          {
+            "type": "p",
+            "text": "模型檢查能提早發現 API 金鑰、模型存取權限或已下架模型等問題，避免討論進行到一半才中斷。"
+          },
+          {
+            "type": "p",
+            "text": "可於「設定」手動執行，也可以設定為每次討論開始前自動檢查。"
+          }
+        ]
+      },
+      {
+        "id": "vault",
+        "title": "Vault",
+        "blocks": [
+          {
+            "type": "p",
+            "text": "Vault 是 Aether Library 的本機儲存位置，用來保存您選擇保留的討論。"
+          },
+          {
+            "type": "p",
+            "text": "所有內容都會以 Markdown 檔案儲存，方便閱讀、備份與管理。在您主動儲存之前，不會有任何內容寫入 Vault。"
+          }
+        ]
+      },
+      {
+        "id": "archives",
+        "title": "檔案庫",
+        "blocks": [
+          {
+            "type": "p",
+            "text": "檔案庫保存您的討論紀錄，並依時間排序，可依問題、模式、學者、供應商或模型搜尋。"
+          },
+          {
+            "type": "p",
+            "text": "您可以重新查看過去的討論，也可以接續上次的內容繼續討論。Vault 則用來保存您主動選擇保留的討論，並以 Markdown 檔案儲存。"
+          }
+        ]
+      },
+      {
+        "id": "obsidian",
+        "title": "Obsidian",
+        "blocks": [
+          {
+            "type": "p",
+            "text": "選用功能。若您使用 Obsidian，可以將選擇的 Aether Library 內容同步至您的 Obsidian Vault。"
+          },
+          {
+            "type": "p",
+            "text": "Aether Library 不需要 Obsidian 也能保存與管理您的討論。"
+          },
+          {
+            "type": "p",
+            "text": "您可以在每次討論結束後，或隨時從 Archives，選擇要同步至 Obsidian 的內容。"
+          }
+        ]
+      },
+      {
+        "id": "materials",
+        "title": "資料附件",
+        "blocks": [
+          {
+            "type": "p",
+            "text": "提問時可附加圖片、PDF、Markdown 或其他支援的檔案，提供學者回答時所需的參考資料。"
+          },
+          {
+            "type": "p",
+            "text": "您可以透過瀏覽、拖曳檔案或直接貼上圖片新增附件。附件僅會傳送給該次請求所選擇的 AI 供應商，因此請僅附上願意分享的內容。"
+          }
+        ]
+      },
+      {
+        "id": "privacy",
+        "title": "隱私與資料",
+        "blocks": [
+          {
+            "type": "p",
+            "text": "Vault 檔案會保存在您指定的本機資料夾中。API 金鑰也會保存在本機，儲存後不會再次完整顯示於介面中。"
+          },
+          {
+            "type": "p",
+            "text": "當送出問題時，問題內容、附件及回答所需的脈絡會傳送至您所選擇的 AI 供應商。"
+          },
+          {
+            "type": "p",
+            "text": "因此，傳送給 AI 供應商的資料將依其服務條款與隱私政策處理。"
+          }
+        ]
+      },
+      {
+        "id": "api-usage",
+        "title": "API 使用量",
+        "blocks": [
+          {
+            "type": "p",
+            "text": "所有請求皆使用您自己的 AI 供應商帳戶，因此 API 用量會直接計入您的帳戶。"
+          },
+          {
+            "type": "list",
+            "items": [
+              "導師模式通常用量最低，每輪僅有一位學者回應。",
+              "智囊團模式會由多位學者回答，再由大智者整合，因此用量通常較高。",
+              "模型檢查會額外送出少量測試請求。"
+            ]
+          },
+          {
+            "type": "p",
+            "text": "實際費用請以各 AI 供應商提供的帳務資訊為準。"
+          }
+        ]
+      },
+      {
+        "id": "troubleshooting",
+        "title": "疑難排解",
+        "blocks": [
+          {
+            "type": "list",
+            "items": [
+              "學者無法開始：確認供應商已啟用，且 API 金鑰有效。",
+              "模型無法使用：可能已下架或沒有存取權限，可重新執行模型檢查或更換模型。",
+              "無法儲存：確認 Vault 已設定，且資料夾仍存在。",
+              "回答中途停止：可能因供應商限流或逾時，稍後再試即可。",
+              "看起來尚未完成設定：請開啟「設定」，確認 AI 供應商、API 金鑰與模型是否已正確設定。",
+              "附件無法加入：請確認檔案格式受支援，或重新加入附件。"
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}
