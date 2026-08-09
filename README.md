@@ -1,9 +1,6 @@
 # Aether Library
 
-A local-first workspace where several AI models think about your question
-together, presented as a living library you can walk into. Ask once; multiple
-**Scholars** answer independently, a **Grand Sage** weighs their answers, and
-anything worth keeping is saved as Markdown in a Vault you own.
+Aether Library is a multi-AI workspace where different AI providers collaborate to answer your questions together. Compare perspectives from multiple AI Scholars, synthesize insights with a Grand Sage, and preserve your knowledge in a personal Vault stored on your device.
 
 Your API keys, your Vault and your discussion history stay on your own
 machine. There is no account and no Aether Library server.
@@ -12,15 +9,9 @@ machine. There is no account and no Aether Library server.
 
 ## What is Aether Library?
 
-Most AI tools give you one model's answer in a chat box. Aether Library is
-built around the idea that a hard question deserves more than one perspective,
-and that the results are worth keeping.
+Most AI tools give you a single model's answer in a chat box. Aether Library is built around the idea that difficult questions deserve multiple perspectives, and that valuable conversations are worth preserving.
 
-You start a discussion by clicking **Aetherom**, the book on the reading-room
-table. You choose how the question is answered — a full **Council**, or a
-single **Mentor**. The answers arrive in a workspace where you can compare
-them side by side, and save the ones you want into your Vault as plain
-Markdown files that remain readable long after this application is gone.
+You start a discussion by opening Aetherom, the book on the reading-room table. Choose how your question is explored: a full Council where multiple Scholars respond independently, or a single Mentor for focused guidance. Compare responses side by side and save meaningful insights into your Vault as plain Markdown files.
 
 The library itself is not decoration. Scenes, characters and the reading room
 are part of how the product presents its work, and the current MVP ships with
