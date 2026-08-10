@@ -106,5 +106,5 @@ test("nothing outside the Content tab changed", async () => {
   assert.doesNotMatch(product, /spawn|openPathInOs|child_process/);
   // No version bump came with it.
   const pkg = JSON.parse(await readSource("../package.json"));
-  assert.equal(pkg.version, "1.0.0");
+  assert.equal(pkg.version, "1.0.1");
 });

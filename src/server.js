@@ -750,7 +750,7 @@ if (config.devTools) {
 }
 
 app.get("/api/health", (_req, res) => {
-  res.json({ ok: true, app: "aether-library", version: "1.0.0" });
+  res.json({ ok: true, app: "aether-library", version: "1.0.1" });
 });
 
 // ---------------------------------------------------------------------
