@@ -6122,7 +6122,7 @@ function renderGeneral() {
   // Default Reply Language — an application-wide AI setting that lives in
   // General alongside the other preferences, no longer under Grand Sage.
   sx.lang = document.getElementById("gen-reply-lang");
-  sx.lang.value = currentConfig.defaultReplyLanguage || "zh-TW";
+  sx.lang.value = currentConfig.defaultReplyLanguage || "en";
 
   sx.theme = document.getElementById("gen-theme");
   sx.theme.querySelector('option[value="dark"]').textContent = str("themeDark");
