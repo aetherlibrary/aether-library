@@ -17,7 +17,7 @@ import {
   supportedInterfaceLanguages,
   interfaceLanguageOptions,
   SCHOLAR_SLOTS,
-  DEFAULT_LANGUAGE,
+  DEFAULT_REPLY_LANGUAGE,
 } from "./localization.js";
 
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -272,7 +272,15 @@ export function reloadConfig() {
   // request only. DISPLAY_LANGUAGE is read as a fallback so an existing
   // .env.local keeps its configured value across this rename; the new key
   // is the only one ever written (see settings.js FIELD_TO_ENV).
-  config.defaultReplyLanguage = env("DEFAULT_REPLY_LANGUAGE", env("DISPLAY_LANGUAGE", DEFAULT_LANGUAGE));
+  //
+  // The final fallback is DEFAULT_REPLY_LANGUAGE ("en"), NOT DEFAULT_LANGUAGE
+  // ("zh-TW"). The latter is the locale/identity fallback and answers a
+  // different question; sharing it here meant a fresh install instructed every
+  // Scholar and the Grand Sage to answer in Traditional Chinese before the
+  // user had chosen anything. Only this last step changed — a saved
+  // DEFAULT_REPLY_LANGUAGE, and the legacy DISPLAY_LANGUAGE, still win, so an
+  // existing install keeps exactly the language it had.
+  config.defaultReplyLanguage = env("DEFAULT_REPLY_LANGUAGE", env("DISPLAY_LANGUAGE", DEFAULT_REPLY_LANGUAGE));
   // Fixed Scholar slots #1–#3: which provider (and optionally which model)
   // answers as each character. Read the raw values from the environment, then
   // run them through the centralized normalizer so config.scholarSlots is

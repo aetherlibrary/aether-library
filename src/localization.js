@@ -22,7 +22,17 @@ const LOCALES = {
   "zh-TW": zhTW,
 };
 
+// Locale/identity fallback ONLY: the pack used when a requested language has
+// no entry (identityFor, responseLanguageName). It is NOT the default language
+// AI answers are written in — see DEFAULT_REPLY_LANGUAGE below.
 export const DEFAULT_LANGUAGE = "zh-TW";
+
+// The language AI responses default to on a FRESH install — nothing saved in
+// .env.local yet. Deliberately separate from DEFAULT_LANGUAGE: the two answer
+// different questions, and sharing one constant meant a brand-new user was
+// told the Scholars must answer in Traditional Chinese before they had chosen
+// anything. A saved preference always wins over this (see src/config.js).
+export const DEFAULT_REPLY_LANGUAGE = "en";
 
 export const SCHOLAR_SLOTS = [1, 2, 3];
 
