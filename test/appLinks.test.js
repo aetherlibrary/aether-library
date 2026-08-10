@@ -244,3 +244,67 @@ test("Batch A Product Status behaviour is untouched by Batch B", () => {
   const open = extractFn(appJs, "function openProductStatus()");
   assert.doesNotMatch(open, /fetch\(|runCouncilPrecheck/);
 });
+
+// ==================================================== first-launch onboarding
+//
+// THE REGRESSION THIS GUARDS: "Enter Library" used to be hidden until a Vault
+// was connected (`els.start.enter.hidden = !connected` inside
+// renderVaultControl). On a clean install that made the Start Menu a dead end
+// — the only way in was to connect a Vault — and because the first-run
+// tutorial is triggered BY entering the Library, a brand-new user never saw it
+// either. Both symptoms had the same single cause.
+//
+// A Vault is optional for exploring. It is required only to SAVE.
+
+test("Enter Library is available on a clean first launch, with no Vault", () => {
+  const html = fs.readFileSync(path.join(process.cwd(), "public", "index.html"), "utf8");
+  const btn = html.match(/<button id="start-enter"[^>]*>/)[0];
+  assert.ok(btn, "the Start Menu still has an Enter Library button");
+  assert.doesNotMatch(btn, /\bhidden\b/, "it must not ship hidden — a fresh visitor needs a way in");
+});
+
+test("Vault connection state never decides whether the Library can be entered", () => {
+  const fn = extractFn(appJs, "function renderVaultControl()");
+  // It still owns the Vault's OWN controls...
+  assert.match(fn, /els\.vault\.connectBtn\.hidden = connected;/);
+  assert.match(fn, /els\.vault\.split\.hidden = !connected;/);
+  // ...but must never reach the Start Menu's entry button again.
+  assert.doesNotMatch(fn, /els\.start\.enter/, "renderVaultControl must not gate Enter Library");
+  // And nothing else may hide it either.
+  assert.doesNotMatch(appJs, /els\.start\.enter\.hidden\s*=/, "nothing may hide Enter Library");
+});
+
+test("entering the Library is what offers the tutorial, and it asks for no setup", () => {
+  const enter = extractFn(appJs, "function enterLibrary()");
+  assert.match(enter, /maybeAutoStartTutorial\(\);/, "first-run walkthrough is offered on entry");
+  // Entry itself is unconditional — no Vault, provider or config check.
+  assert.doesNotMatch(enter, /vaultState|anyProviderConfigured|configured/, "entry requires no setup");
+  // The auto-start gate remains the localStorage flag alone (asserted above),
+  // so a clean profile reaches it.
+  const auto = extractFn(appJs, "function maybeAutoStartTutorial()");
+  assert.doesNotMatch(auto, /vault|provider/i, "the tutorial is not gated on any connection state");
+});
+
+test("setup is required where it is actually needed, not on the way in", () => {
+  // AI: opening the Core Book with nothing configured explains instead.
+  const mode = extractFn(appJs, "function openModeModal()");
+  assert.match(mode, /if \(!anyProviderConfigured\(\)\) \{\s*openAiSetupDialog\(\);\s*return;/);
+  // Vault: saving without one is refused with localized guidance, before the
+  // request rather than as a raw server error.
+  const save = extractFn(appJs, "async function saveToVault()");
+  assert.match(save, /if \(!vaultState\.configured\) \{/);
+  assert.match(save, /str\("vaultRequiredToSave"\)/);
+  const saveGuardAt = save.indexOf("vaultRequiredToSave");
+  const requestAt = save.indexOf("/api/session/save");
+  assert.ok(saveGuardAt > 0 && saveGuardAt < requestAt, "the guidance precedes the request");
+});
+
+test("the save guidance string exists in every locale and in the fallback", async () => {
+  const en = (await import("../src/locales/en.js")).default.strings;
+  const zh = (await import("../src/locales/zh-TW.js")).default.strings;
+  for (const [name, pack] of [["en", en], ["zh-TW", zh]]) {
+    assert.equal(typeof pack.vaultRequiredToSave, "string", `${name} is missing the key`);
+    assert.ok(pack.vaultRequiredToSave.length > 0, `${name} is blank`);
+  }
+  assert.match(appJs, /vaultRequiredToSave: "Connect a Vault to save this discussion\.",/);
+});

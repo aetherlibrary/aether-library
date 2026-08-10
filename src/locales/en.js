@@ -171,6 +171,10 @@ export default {
     saveToVault: "Save to Vault",
     saving: "Saving…",
     savedToPath: "Saved to {path}.",
+    // Saving is the ONE thing that genuinely needs a Vault. Entering the
+    // Library and holding a discussion do not, so this is guidance at the
+    // point of need rather than a gate on the way in.
+    vaultRequiredToSave: "Connect a Vault to save this discussion.",
     reset: "Reset",
     sessionGone:
       "This Session no longer exists on the server (it restarted since this run). Start a new Session.",
@@ -610,11 +614,13 @@ export default {
     perplexitySonarNote: "Currently supports the Perplexity Sonar model family.",
     // First-run AI setup guidance (see maybeShowAiSetupHint in app.js).
     aiSetupHint: "Connect your first AI Provider",
+    // Stage 2 of first-run setup — shown only once a provider exists.
+    vaultSetupHint: "Connect a Vault to save discussions",
     aiSetupHintDismiss: "Dismiss",
     aiSetupTitle: "AI Provider Required",
     aiSetupBody1: "No AI providers have been configured yet.",
-    aiSetupBody2: "Connect your first AI provider in Settings to begin conversations.",
-    aiSetupOpenSettings: "Open Settings",
+    aiSetupBody2: "Connect your first AI provider in AI Config to begin conversations.",
+    aiSetupOpenSettings: "Open AI Config",
     aiSetupLater: "Later",
     modeToggleAria: "Interaction mode",
     quickQuestions: "✨ Quick Questions",

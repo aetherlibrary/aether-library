@@ -140,6 +140,8 @@ export default {
     saveToVault: "儲存到 Vault",
     saving: "儲存中…",
     savedToPath: "已儲存到 {path}。",
+    // 只有「儲存」真正需要 Vault：進入圖書館與進行討論都不需要。
+    vaultRequiredToSave: "請先連接 Vault，才能儲存這場討論。",
     reset: "重設",
     sessionGone: "此會談已不存在於伺服器上（伺服器在這次執行後重新啟動過）。請開始新的會談。",
 
@@ -460,11 +462,13 @@ export default {
     modelsCount: "{count} 個模型",
     perplexitySonarNote: "目前支援 Perplexity Sonar 系列模型。",
     aiSetupHint: "連接你的第一個 AI 供應商",
+    // 第二階段引導：已設定 AI 供應商後才會出現。
+    vaultSetupHint: "連接 Vault 以保存討論",
     aiSetupHintDismiss: "關閉",
     aiSetupTitle: "需要 AI 供應商",
     aiSetupBody1: "尚未設定任何 AI 供應商。",
-    aiSetupBody2: "請在設定中連接第一個 AI 供應商，即可開始對話。",
-    aiSetupOpenSettings: "開啟設定",
+    aiSetupBody2: "請在「AI 配置」中連接第一個 AI 供應商，即可開始對話。",
+    aiSetupOpenSettings: "開啟 AI 配置",
     aiSetupLater: "稍後再說",
     modeToggleAria: "互動模式",
     quickQuestions: "✨ 快速提問",

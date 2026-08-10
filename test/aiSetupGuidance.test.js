@@ -71,10 +71,14 @@ test("configured-ness is derived from config, never from a parallel flag", async
     "aether.modelFailureMemory",
     "aether.quickActionsExpanded",
     "aether.tutorialSeen",
+    // Stage 2 of the same guidance. One bit per stage, for the one question
+    // configuration cannot answer — "has the user already dealt with this?".
+    // Separate keys on purpose, so dismissing one never dismisses the other.
+    "aether.vaultSetupHintDone",
   ]);
-  // ...and the guidance itself declares only its own.
+  // ...and the guidance itself declares only its own two, one per stage.
   const sectionKeys = [...section.matchAll(/const \w+_KEY = "([^"]+)"/g)].map((m) => m[1]);
-  assert.deepEqual(sectionKeys, ["aether.aiSetupHintDone"]);
+  assert.deepEqual(sectionKeys, ["aether.aiSetupHintDone", "aether.vaultSetupHintDone"]);
 });
 
 test("the guidance is permanently off once a provider appears", async () => {
@@ -89,11 +93,13 @@ test("the guidance is permanently off once a provider appears", async () => {
 
 test("it is re-evaluated wherever configuration or tutorial state can change", async () => {
   const appJs = await app();
-  // Every Settings save and Model Pre-check funnels through loadStatus().
-  assert.match(appJs, /applySceneTheme\(cfg\.sceneTheme, resolveSceneThemeMode\(cfg\)\);\s*\n[\s\S]{0,200}?refreshAiSetupHint\(\);/);
+  // Both stages refresh from ONE entry point, so neither can be re-evaluated
+  // without the other. Every Settings save and Model Pre-check funnels
+  // through loadStatus().
+  assert.match(appJs, /applySceneTheme\(cfg\.sceneTheme, resolveSceneThemeMode\(cfg\)\);\s*\n[\s\S]{0,300}?refreshSetupGuidance\(\);/);
   // ...and finishing or skipping the Tutorial is the moment it can first apply.
   const endTutorial = appJs.slice(appJs.indexOf("function endTutorial()"), appJs.indexOf("function tutorialNext()"));
-  assert.match(endTutorial, /markTutorialSeen\(\);\s*\n[\s\S]{0,200}?refreshAiSetupHint\(\);/);
+  assert.match(endTutorial, /markTutorialSeen\(\);\s*\n[\s\S]{0,300}?refreshSetupGuidance\(\);/);
 });
 
 // ------------------------------------------------------------- the highlight
@@ -143,9 +149,25 @@ test("opening Settings retires the tooltip only; the highlight waits for a real 
   assert.match(section, /function noteAiSetupSettingsOpened\(\) \{\s*aiSetupTooltipSeen = true;/);
   // The ✕ is the decision that persists.
   assert.match(section, /function dismissAiSetupHint\(\) \{\s*markAiSetupHintDone\(\);/);
-  // Both routes into Settings hide the tooltip.
+  // Both routes retire the tooltip. They open DIFFERENT modals on purpose:
+  // the Settings button opens Settings, while the "AI Provider Required"
+  // dialog exists only to get a first-run user to their provider fields —
+  // which live in AI Config since the two modals were split. Sending it to
+  // Settings left new users hunting for fields that had moved.
   assert.match(appJs, /els\.settings\.open\.addEventListener\("click", \(\) => \{[\s\S]{0,300}?noteAiSetupSettingsOpened\(\);\s*openSettings\(\);/);
-  assert.match(appJs, /els\.aiSetup\.openSettings\?\.addEventListener[\s\S]{0,200}?noteAiSetupSettingsOpened\(\);\s*openSettings\(\);/);
+  assert.match(appJs, /els\.aiSetup\.openSettings\?\.addEventListener[\s\S]{0,300}?noteAiSetupSettingsOpened\(\);[\s\S]{0,300}?openSettings\("ai-config"\);/);
+});
+
+test("the AI-required guidance names AI Config, in every locale", async () => {
+  const en = (await import("../src/locales/en.js")).default.strings;
+  const zh = (await import("../src/locales/zh-TW.js")).default.strings;
+  // The copy must point at the modal that actually holds provider settings.
+  assert.match(en.aiSetupBody2, /AI Config/);
+  assert.equal(en.aiSetupOpenSettings, "Open AI Config");
+  assert.match(zh.aiSetupBody2, /AI 配置/);
+  assert.match(zh.aiSetupOpenSettings, /AI 配置/);
+  // Neither may still send the user to Settings for providers.
+  assert.doesNotMatch(en.aiSetupBody2, /\bin Settings\b/);
 });
 
 // ---------------------------------------------------------- the book dialog
@@ -246,4 +268,104 @@ test("copy exists in both locales and carries no hardcoded English in the UI pat
   for (const id of ["ai-setup-hint-text", "ai-setup-title", "ai-setup-body1", "ai-setup-body2", "ai-setup-later", "ai-setup-open-settings"]) {
     assert.match(appJs, new RegExp(`setText\\("${id}", "`), `${id} is not localized`);
   }
+});
+
+// ============================================ sequenced first-run onboarding
+//
+// A fresh user is shown ONE thing to do at a time, in dependency order:
+//
+//   Enter Library -> Tutorial -> AI Config (if no provider)
+//                             -> Vault     (if no Vault)
+//                             -> nothing
+//
+// Stage 2 stays silent until stage 1 is genuinely satisfied, so a first
+// launch never lights up two controls at once and reads as a chore list.
+
+test("the AI hint is anchored to AI Config — the button it actually opens", async () => {
+  const markup = await html();
+  const nav = markup.slice(markup.indexOf('<div class="lib-nav">'), markup.indexOf('id="more-control"'));
+  const aiConfigAt = nav.indexOf('id="open-ai-config"');
+  const hintAt = nav.indexOf('id="ai-setup-hint"');
+  const settingsAt = nav.indexOf('id="open-settings"');
+  assert.ok(aiConfigAt > 0 && hintAt > 0);
+  assert.ok(hintAt > aiConfigAt, "the hint sits beside AI Config, not Settings");
+  assert.ok(aiConfigAt > settingsAt, "AI Config still follows Settings in the nav");
+  // ...and the highlight is applied to that same button.
+  const fn = (await app()).slice((await app()).indexOf("function refreshAiSetupHint()"));
+  assert.match(fn.slice(0, 400), /const btn = els\.aiConfig\.open;/);
+  assert.doesNotMatch(fn.slice(0, 400), /els\.settings\.open/, "the highlight must not target Settings");
+});
+
+test("stage 1 applies only with no provider, after the tutorial, and not once dismissed", async () => {
+  const section = await guidanceSection();
+  const fn = section.slice(section.indexOf("function aiSetupGuidanceApplies()"));
+  assert.match(fn.slice(0, 260), /hasSeenTutorial\(\) && !anyProviderConfigured\(\) && !aiSetupHintDone\(\)/);
+});
+
+test("stage 2 waits for a provider, then applies only while no Vault exists", async () => {
+  const src = await app();
+  const fn = src.slice(src.indexOf("function vaultSetupGuidanceApplies()"), src.indexOf("let vaultSetupTooltipSeen"));
+  assert.ok(fn.length > 0, "vaultSetupGuidanceApplies exists");
+  // The ORDERING guarantee: a provider must exist before the Vault is offered.
+  assert.match(fn, /anyProviderConfigured\(\)/, "stage 2 requires stage 1 to be satisfied");
+  assert.match(fn, /!vaultState\.configured/, "…and only while no Vault is connected");
+  assert.match(fn, /hasSeenTutorial\(\)/, "…and never during the tutorial");
+  assert.match(fn, /!vaultSetupHintDone\(\)/, "…and not once dismissed");
+});
+
+test("a configured requirement is never highlighted, and never returns", async () => {
+  const src = await app();
+  const ai = src.slice(src.indexOf("function refreshAiSetupHint()"), src.indexOf("// The ✕. An explicit decision"));
+  const vault = src.slice(src.indexOf("function refreshVaultSetupHint()"), src.indexOf("function dismissVaultSetupHint()"));
+  // Satisfying a stage retires it permanently — removing a key or
+  // disconnecting a Vault later must not bring the guidance back.
+  assert.match(ai, /if \(anyProviderConfigured\(\) && !aiSetupHintDone\(\)\) markAiSetupHintDone\(\);/);
+  assert.match(vault, /if \(vaultState\.configured && !vaultSetupHintDone\(\)\) markVaultSetupHintDone\(\);/);
+  // Both drive the same highlight class off their own `applies` result, so a
+  // satisfied requirement cannot stay lit.
+  for (const fn of [ai, vault]) {
+    assert.match(fn, /classList\.toggle\("ai-setup-highlight", applies\);/);
+    assert.match(fn, /hidden = !applies \|\| \w+TooltipSeen;/);
+  }
+});
+
+test("both stages refresh together, from one entry point, at every trigger", async () => {
+  const src = await app();
+  const both = src.slice(src.indexOf("function refreshSetupGuidance()"), src.indexOf("function refreshSetupGuidance()") + 200);
+  assert.match(both, /refreshAiSetupHint\(\);\s*refreshVaultSetupHint\(\);/, "stage 1 then stage 2");
+  // Called where state can change: config load and tutorial exit.
+  assert.match(src, /refreshSetupGuidance\(\);\s*\n\s*renderVaultControl\(\);/, "on config load");
+  assert.match(src, /markTutorialSeen\(\);[\s\S]{0,300}?refreshSetupGuidance\(\);/, "on tutorial exit");
+  // A Vault change re-evaluates stage 2 directly.
+  const render = src.slice(src.indexOf("function renderVaultControl()"), src.indexOf("function renderVaultControl()") + 600);
+  assert.match(render, /refreshVaultSetupHint\(\);/);
+});
+
+test("the Vault hint has its own element, its own flag, and a shared dismiss", async () => {
+  const markup = await html();
+  // A SIBLING of .vault-control — nesting would ride along with the dropdown,
+  // which owns that element as its positioning context.
+  const vaultCtl = markup.indexOf('id="vault-control"');
+  const vaultHint = markup.indexOf('id="vault-setup-hint"');
+  assert.ok(vaultCtl > 0 && vaultHint > vaultCtl);
+  assert.match(markup, /<div class="ai-hint" id="vault-setup-hint" role="status" hidden>/, "reuses the hint style, ships hidden");
+  const src = await app();
+  assert.match(src, /const VAULT_SETUP_HINT_DONE_KEY = "aether\.vaultSetupHintDone";/);
+  // Separate from stage 1's flag — dismissing one must not dismiss the other.
+  assert.notEqual("aether.vaultSetupHintDone", "aether.aiSetupHintDone");
+  assert.match(src, /els\.vaultSetupHint\.dismiss\?\.addEventListener\("click", dismissVaultSetupHint\);/);
+  // Opening the picker retires the tooltip for the session only.
+  assert.match(src, /noteVaultSetupOpened\(\);\s*connectVaultFirstTime\(\);/);
+});
+
+test("the stage-2 string exists in every locale and in the fallback", async () => {
+  const en = (await import("../src/locales/en.js")).default.strings;
+  const zh = (await import("../src/locales/zh-TW.js")).default.strings;
+  for (const [name, pack] of [["en", en], ["zh-TW", zh]]) {
+    assert.equal(typeof pack.vaultSetupHint, "string", `${name} missing vaultSetupHint`);
+    assert.ok(pack.vaultSetupHint.length > 0, `${name} blank`);
+  }
+  const src = await app();
+  assert.match(src, /vaultSetupHint: "Connect a Vault to save discussions",/, "EN_FALLBACK carries it too");
+  assert.match(src, /setText\("vault-setup-hint-text", "vaultSetupHint"\);/, "localizeStaticUI rewrites it");
 });

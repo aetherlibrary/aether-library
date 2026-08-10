@@ -102,6 +102,13 @@ const els = {
     text: document.getElementById("ai-setup-hint-text"),
     dismiss: document.getElementById("ai-setup-hint-dismiss"),
   },
+  // Second setup stage — see the same section. Its own element so each hint
+  // sits statically beside the control it is about.
+  vaultSetupHint: {
+    wrap: document.getElementById("vault-setup-hint"),
+    text: document.getElementById("vault-setup-hint-text"),
+    dismiss: document.getElementById("vault-setup-hint-dismiss"),
+  },
   aiSetup: {
     dialog: document.getElementById("ai-setup-dialog"),
     later: document.getElementById("ai-setup-later"),
@@ -1057,12 +1064,15 @@ function localizeStaticUI() {
     }
   }
   setText("ai-setup-hint-text", "aiSetupHint");
+  setText("vault-setup-hint-text", "vaultSetupHint");
   setText("ai-setup-title", "aiSetupTitle");
   setText("ai-setup-body1", "aiSetupBody1");
   setText("ai-setup-body2", "aiSetupBody2");
   setText("ai-setup-later", "aiSetupLater");
   setText("ai-setup-open-settings", "aiSetupOpenSettings");
   if (els.aiSetupHint.dismiss) els.aiSetupHint.dismiss.setAttribute("aria-label", str("aiSetupHintDismiss"));
+  // Both hints share the one dismiss label — the action is identical.
+  if (els.vaultSetupHint.dismiss) els.vaultSetupHint.dismiss.setAttribute("aria-label", str("aiSetupHintDismiss"));
   setText("open-archives", "archives");
 
   // Vault control + menu ("Vault" itself is world terminology, untranslated;
@@ -1280,8 +1290,9 @@ async function loadStatus() {
     // sets data-theme too, so it replaces the bare applyTheme() call.
     applySceneTheme(cfg.sceneTheme, resolveSceneThemeMode(cfg));
     // Config just changed — a provider may have appeared (or this may be the
-    // first load after the Tutorial). Derived, so it cannot go stale.
-    refreshAiSetupHint();
+    // first load after the Tutorial). Derived, so it cannot go stale. Both
+    // stages refresh together: satisfying stage 1 is what reveals stage 2.
+    refreshSetupGuidance();
     renderVaultControl();
     maybeLoadSceneEditor();
     maybeExposeRuntimeDebugHook();
@@ -5234,6 +5245,15 @@ function handleSend() {
 
 async function saveToVault() {
   if (!sessionState) return;
+  // A Vault is optional until this moment. Saying so HERE, in the user's own
+  // language, is better than letting the request fail and surfacing the
+  // server's English error — the adapter still refuses the write either way
+  // (localVaultAdapter.saveSession), so this only changes what the user is
+  // told, never whether an unsaved discussion can reach disk.
+  if (!vaultState.configured) {
+    setHeaderMsg(`⚠ ${str("vaultRequiredToSave")}`);
+    return;
+  }
   els.header.save.disabled = true;
   setHeaderMsg(str("saving"));
   try {
@@ -5601,6 +5621,7 @@ const EN_FALLBACK = {
   theme: "Theme", themeDark: "Dark", themeLight: "Light",
   send: "Send", sending: "Sending…", reset: "Reset",
   saveToVault: "Save to Vault", saving: "Saving…",
+  vaultRequiredToSave: "Connect a Vault to save this discussion.",
   councilWelcome: "The Council awaits your questions.",
   bookPrompt: "Click the book on the table to begin...",
   waiting: "Waiting…", noAnswer: "No answer.", noRuling: "No ruling.",
@@ -5619,6 +5640,7 @@ const EN_FALLBACK = {
   keyBlankKeeps: "configured — blank keeps it", keyNotSet: "not set",
   refreshModels: "Refresh Model List",
   aiSetupHint: "Connect your first AI Provider",
+  vaultSetupHint: "Connect a Vault to save discussions",
   aiSetupHintDismiss: "Dismiss",
   aiSetupTitle: "AI Provider Required",
   aiSetupBody1: "No AI providers have been configured yet.",
@@ -7060,9 +7082,14 @@ function renderVaultControl() {
   const connected = Boolean(vaultState.configured);
   els.vault.connectBtn.hidden = connected;
   els.vault.split.hidden = !connected;
-  // Start menu mirrors the same state: Enter Library appears once a Vault is
-  // connected; Connect Vault stays available for re-connecting.
-  els.start.enter.hidden = !connected;
+  // The Vault just changed, so stage-2 guidance may have become satisfied.
+  refreshVaultSetupHint();
+  // NOTE: the Start Menu's "Enter Library" is deliberately NOT touched here.
+  // It used to be hidden until a Vault existed, which made a clean first
+  // launch a dead end: the only way in was to connect a Vault, and because
+  // the first-run tutorial is triggered by entering the Library, a new user
+  // never saw it either. A Vault is optional for exploring — it is required
+  // only to SAVE a discussion, which is enforced where saving happens.
   if (!connected) {
     closeVaultMenu();
     return;
@@ -7632,7 +7659,10 @@ let aiSetupTooltipSeen = false;
 // exit. Adding an already-present class does not restart a CSS animation, so
 // the particle keeps orbiting smoothly across re-renders.
 function refreshAiSetupHint() {
-  const btn = els.settings.open;
+  // AI CONFIG, not Settings: providers live there, and the tooltip's own
+  // button opens it. Pointing the highlight at a different button than the
+  // one the user is being sent to is what this corrects.
+  const btn = els.aiConfig.open;
   const hint = els.aiSetupHint?.wrap;
   if (!btn) return;
   // Configured at last: retire the guidance for good, not just for now. This
@@ -7655,6 +7685,81 @@ function dismissAiSetupHint() {
 function noteAiSetupSettingsOpened() {
   aiSetupTooltipSeen = true;
   refreshAiSetupHint();
+}
+
+// ------------------------------------------------- setup stage 2: the Vault
+//
+// SEQUENCED, not parallel. A brand-new user is shown ONE thing to do at a
+// time, in dependency order: nothing in the product works without a provider,
+// so AI Config comes first and the Vault hint stays silent until a provider
+// exists. Otherwise a fresh launch lights up two controls at once and reads
+// as a chore list.
+//
+// Everything else mirrors stage 1 exactly — derived state for "is it done",
+// one persisted bit for "has the user dealt with this", and the same tooltip
+// and highlight classes — so the two stages cannot drift apart in behaviour.
+const VAULT_SETUP_HINT_DONE_KEY = "aether.vaultSetupHintDone";
+
+function vaultSetupHintDone() {
+  try {
+    return localStorage.getItem(VAULT_SETUP_HINT_DONE_KEY) === "1";
+  } catch {
+    return true; // storage blocked — never nag, same rule as stage 1
+  }
+}
+
+function markVaultSetupHintDone() {
+  try {
+    localStorage.setItem(VAULT_SETUP_HINT_DONE_KEY, "1");
+  } catch {
+    /* storage blocked — nothing to remember */
+  }
+}
+
+// Stage 2 applies only once stage 1 is genuinely satisfied.
+function vaultSetupGuidanceApplies() {
+  return (
+    hasSeenTutorial() &&
+    anyProviderConfigured() &&
+    !vaultState.configured &&
+    !vaultSetupHintDone()
+  );
+}
+
+let vaultSetupTooltipSeen = false;
+
+function refreshVaultSetupHint() {
+  const btn = els.vault.connectBtn;
+  const hint = els.vaultSetupHint?.wrap;
+  if (!btn) return;
+  // Connected at last: retire it permanently, exactly as stage 1 does when a
+  // provider appears — disconnecting later must not bring the guidance back.
+  if (vaultState.configured && !vaultSetupHintDone()) markVaultSetupHintDone();
+
+  const applies = vaultSetupGuidanceApplies();
+  btn.classList.toggle("ai-setup-highlight", applies);
+  if (hint) hint.hidden = !applies || vaultSetupTooltipSeen;
+}
+
+function dismissVaultSetupHint() {
+  markVaultSetupHintDone();
+  refreshVaultSetupHint();
+}
+
+// The folder picker was opened. Retires the tooltip for this session only —
+// going to look is not the same as having connected, so the highlight stays
+// until a Vault actually exists.
+function noteVaultSetupOpened() {
+  vaultSetupTooltipSeen = true;
+  refreshVaultSetupHint();
+}
+
+// The one entry point every caller should use: both stages, in order, from a
+// single call. Idempotent and derived, so it is safe on every config load,
+// save, Vault change and Tutorial exit.
+function refreshSetupGuidance() {
+  refreshAiSetupHint();
+  refreshVaultSetupHint();
 }
 
 // The Core Book with nothing configured. Explains, offers the two obvious
@@ -7858,7 +7963,8 @@ function endTutorial() {
   markTutorialSeen();
   // The Tutorial has just finished or been skipped, which is one of the four
   // activation conditions — so this is the moment guidance can first apply.
-  refreshAiSetupHint();
+  // Stage 1 shows now; stage 2 waits until a provider exists.
+  refreshSetupGuidance();
 }
 
 function tutorialNext() {
@@ -13026,7 +13132,10 @@ els.aiSetup.later?.addEventListener("click", () => els.aiSetup.dialog.close());
 els.aiSetup.openSettings?.addEventListener("click", () => {
   els.aiSetup.dialog.close();
   noteAiSetupSettingsOpened();
-  openSettings();
+  // AI Config, not Settings: providers, keys and models moved there when the
+  // two modals were split. Sending a first-run user to Settings left them
+  // looking for provider fields that are no longer in it.
+  openSettings("ai-config");
 });
 els.settings.cancel.addEventListener("click", () => closeSettingsDialogs());
 els.settings.form.addEventListener("submit", saveSettings);
@@ -13101,7 +13210,13 @@ els.archives.search.addEventListener("input", () => {
   renderArchivesList(archivesCache, els.archives.search.value);
 });
 
-els.vault.connectBtn.addEventListener("click", connectVaultFirstTime);
+els.vault.connectBtn.addEventListener("click", () => {
+  // Same rule as stage 1's Settings button: opening the picker retires the
+  // tooltip for this session, while the highlight waits for a real Vault.
+  noteVaultSetupOpened();
+  connectVaultFirstTime();
+});
+els.vaultSetupHint.dismiss?.addEventListener("click", dismissVaultSetupHint);
 els.vault.openBtn.addEventListener("click", openVaultFolder);
 els.vault.menuToggle.addEventListener("click", (event) => {
   event.stopPropagation();

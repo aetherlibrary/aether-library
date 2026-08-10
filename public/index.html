@@ -8,8 +8,8 @@
 </head>
 <body>
   <!-- ============================================================ Start Menu
-       First screen: title, version, credit, and the two entry actions. Enter
-       Library appears once a Vault is connected. The background art is
+       First screen: title, version, credit, and the entry actions. Enter
+       Library is ALWAYS available — a Vault is optional. The background art is
        authored (config/app-shell.json -> --start-bg-url), never hardcoded
        here or in CSS. -->
   <div id="start-menu">
@@ -38,7 +38,10 @@
       <!-- All button text below is the English default; localizeStaticUI()
            (app.js) re-writes every label from the active locale pack. -->
       <div class="start-buttons">
-        <button id="start-enter" type="button" class="pixel-btn start-btn primary" hidden>Enter Library</button>
+        <!-- Always available. Entering the Library requires no setup at all:
+             a Vault is optional, and a first-run visitor must be able to look
+             around (and meet the tutorial) before deciding to connect one. -->
+        <button id="start-enter" type="button" class="pixel-btn start-btn primary">Enter Library</button>
         <button id="start-connect" type="button" class="pixel-btn start-btn">Connect Vault</button>
         <button id="start-settings" type="button" class="pixel-btn start-btn">Settings</button>
       </div>
@@ -58,17 +61,20 @@
       <section id="library-panel" class="panel-frame">
         <div class="lib-nav">
           <button id="open-settings" type="button" class="pixel-btn">Settings</button>
-          <!-- First-run AI setup hint. A sibling of the button, never a child:
-               localizeStaticUI() rewrites #open-settings's textContent, which
-               would destroy any element nested inside it. Hidden until the
-               guidance actually applies (see maybeShowAiSetupHint in app.js). -->
+          <!-- AI Config: a TOP-LEVEL sibling of Settings, not a tab inside it.
+               Same .pixel-btn treatment as Settings/Archives. -->
+          <button id="open-ai-config" type="button" class="pixel-btn">AI Config</button>
+          <!-- First-run AI setup hint. Sits beside AI CONFIG because that is
+               where providers are configured and where the hint's own button
+               sends you — it used to sit beside Settings, so the tooltip
+               pointed at one button while opening another.
+               A sibling of the button, never a child: localizeStaticUI()
+               rewrites the button's textContent, which would destroy any
+               element nested inside it. -->
           <div class="ai-hint" id="ai-setup-hint" role="status" hidden>
             <span id="ai-setup-hint-text">Connect your first AI Provider</span>
             <button type="button" id="ai-setup-hint-dismiss" class="ai-hint-dismiss" aria-label="Dismiss">×</button>
           </div>
-          <!-- AI Config: a TOP-LEVEL sibling of Settings, not a tab inside it.
-               Same .pixel-btn treatment as Settings/Archives. -->
-          <button id="open-ai-config" type="button" class="pixel-btn">AI Config</button>
           <button id="open-archives" type="button" class="pixel-btn">Archives</button>
           <div class="vault-control" id="vault-control">
             <button id="vault-connect-btn" type="button" class="pixel-btn" hidden>Connect Vault</button>
@@ -103,6 +109,15 @@
                 <span id="vault-menu-path" class="vault-menu-path"></span>
               </div>
             </div>
+          </div>
+          <!-- Second-stage setup hint. A SIBLING of .vault-control, never a
+               child: that element is the dropdown's positioning context
+               (position: relative) and nesting here would ride along with the
+               menu. Shown only after a provider exists — see
+               vaultSetupGuidanceApplies() in app.js. -->
+          <div class="ai-hint" id="vault-setup-hint" role="status" hidden>
+            <span id="vault-setup-hint-text">Connect a Vault to save discussions</span>
+            <button type="button" id="vault-setup-hint-dismiss" class="ai-hint-dismiss" aria-label="Dismiss">×</button>
           </div>
 
           <!-- MORE menu (Batch B). Deliberately reuses the Vault dropdown's
@@ -768,11 +783,11 @@
     <h2 id="ai-setup-title">AI Provider Required</h2>
     <p class="muted" id="ai-setup-body1">No AI providers have been configured yet.</p>
     <p class="muted" id="ai-setup-body2">
-      Connect your first AI provider in Settings to begin conversations.
+      Connect your first AI provider in AI Config to begin conversations.
     </p>
     <div class="dialog-buttons">
       <button type="button" id="ai-setup-later">Later</button>
-      <button type="button" id="ai-setup-open-settings">Open Settings</button>
+      <button type="button" id="ai-setup-open-settings">Open AI Config</button>
     </div>
   </dialog>
 
