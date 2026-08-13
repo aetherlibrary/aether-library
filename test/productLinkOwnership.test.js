@@ -228,7 +228,7 @@ test("the app version still comes from package.json, never from the product file
   const pkg = JSON.parse(await readSource("../package.json"));
   const cfg = await readSource("../src/config.js");
   assert.match(cfg, /package\.json/);
-  assert.equal(pkg.version, "1.0.1");
+  assert.equal(pkg.version, "1.1.0");
 });
 
 // ------------------------------------------------------------ the copy
