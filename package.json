@@ -4,11 +4,14 @@
   "description": "Local-first multi-AI reasoning workspace: Scholars answer independently, a Grand Sage synthesizes, and discussions can be saved as Markdown to your own Vault.",
   "type": "module",
   "private": true,
-  "main": "src/start.js",
+  "main": "electron/main.js",
   "scripts": {
     "start": "node src/start.js",
     "dev": "node --watch src/server.js",
-    "test": "node --test"
+    "test": "node --test",
+    "electron:dev": "electron .",
+    "electron:pack": "electron-builder --win --x64 --dir",
+    "electron:build": "electron-builder --win --x64"
   },
   "engines": {
     "node": ">=20"
@@ -16,5 +19,9 @@
   "dependencies": {
     "express": "^4.21.2",
     "pdf-parse": "^1.1.1"
+  },
+  "devDependencies": {
+    "electron": "^43.4.0",
+    "electron-builder": "^26.15.3"
   }
 }

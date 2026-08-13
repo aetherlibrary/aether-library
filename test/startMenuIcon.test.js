@@ -210,18 +210,35 @@ test("the icon renders through its own element and never touches the wordmark", 
   assert.match(titleFn, /wordmark\.hidden = Boolean\(path\)/);
 });
 
-test("the icon is a separate element, layered under the title, and untinted", async () => {
+test("the icon is a separate element, anchored above the wordmark, and untinted", async () => {
   const html = await readSource("../public/index.html");
   const iconAt = html.indexOf('id="start-icon-image"');
   const titleAt = html.indexOf('id="start-title-image"');
+  const wordmarkAt = html.indexOf('id="start-title"');
   assert.ok(iconAt > 0 && titleAt > 0, "both elements exist");
-  assert.ok(iconAt < titleAt, "the icon composites beneath the title image");
   assert.match(html, /<img id="start-icon-image"[^>]*hidden/, "ships hidden");
+
+  // THE ICON LIVES INSIDE .start-content, and ahead of the wordmark.
+  //
+  // It used to be a direct child of #start-menu, positioned at a percentage of
+  // the 1080-tall canvas. That only lined up at 1920x1080: the wordmark is
+  // centred by the flex column, so on a shorter window the title rose past the
+  // icon and covered it, and on a taller one the icon drifted far above.
+  // Anchoring it to the top of the column is what makes the spacing hold at
+  // every size, so this ordering is load-bearing, not incidental.
+  const content = html.slice(html.indexOf('<div class="start-content">'), html.indexOf("</div>", wordmarkAt));
+  assert.ok(content.includes('id="start-icon-image"'), "the icon sits inside .start-content");
+  assert.ok(iconAt < wordmarkAt, "and ahead of the wordmark it is anchored above");
 
   const css = await readSource("../public/style.css");
   const block = css.slice(css.indexOf("#start-icon-image {"), css.indexOf("#start-icon-image[hidden]"));
-  assert.match(block, /transform: translate\(-50%, -50%\) scale\(var\(--start-icon-scale, 1\)\);/);
+  // Hangs entirely above the title box: translate(-100%) on the Y axis is what
+  // makes overlap impossible rather than merely unlikely.
+  assert.match(block, /transform: translate\(-50%, -100%\);/);
+  assert.match(block, /position: absolute;/, "still out of flow — it adds no height to the column");
   assert.match(block, /height: auto;/, "source aspect ratio is preserved");
+  // Scaled by the authored values, but bounded at both ends.
+  assert.match(block, /width: clamp\([^;]*var\(--start-icon-w[^;]*var\(--start-icon-scale[^;]*\);/);
   // No tint, no wash, no shadow of our own.
   assert.doesNotMatch(block, /filter:|box-shadow:|background-color:/);
 });

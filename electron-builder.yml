@@ -1,0 +1,79 @@
+# Aether Library — Windows packaging (Milestone 2).
+#
+# Kept out of package.json deliberately: the build config is the longest thing
+# in the project that nothing at runtime reads, and package.json is asserted
+# against by test/launchModes.test.js. Separate file, separate concern.
+
+appId: app.aetherlibrary.desktop
+productName: Aether Library
+copyright: © 2026 Kaz Chang. All rights reserved.
+
+directories:
+  output: dist
+  buildResources: build
+
+# ASAR stays OFF for the first packaged build (Milestone 2 scope).
+# Reason it matters here specifically: express.static serves public/ and
+# assets/ straight off disk, and pdf-parse reads its own files. Both usually
+# survive asar, but proving the packaged runtime and proving asar at the same
+# time would leave a failure ambiguous. Enable only once this build passes.
+asar: false
+
+# Whitelist, not "everything minus junk". Derived from what the PRODUCTION
+# runtime actually resolves:
+#   electron/            desktop entry + preload
+#   src/                 the Express application (config, services, providers,
+#                        vault, locales)
+#   public/              the frontend, served by express.static
+#   assets/              scenes, characters, props, art, authored content,
+#                        served at /assets
+#   config/              product.json + app-shell.json, read at runtime
+#   data/scene-layout.json  the Classic Library's layout half — read in
+#                        production via the always-on /api/scene-layout.
+#                        Whitelisted as a single FILE: the rest of data/ is
+#                        machine-local user data and must never be packaged.
+# Everything else (test/, docs/, .env.local, .git, .claude, CHANGELOG, README,
+# ROADMAP) is excluded by omission. devtools/ does not exist in this repo, so
+# the F8 editor cannot be packaged even by accident.
+#
+# node_modules is added by electron-builder itself, production dependencies
+# only (express, pdf-parse) — dev dependencies are never copied.
+files:
+  - electron/**/*
+  - src/**/*
+  - public/**/*
+  - assets/**/*
+  - config/**/*
+  - data/scene-layout.json
+  - package.json
+
+win:
+  target:
+    - target: nsis
+      arch:
+        - x64
+  # The official icon, derived from assets/app-icons/app_icon_master.png and
+  # containing 16/24/32/48/64/128/256 px entries. electron-builder stamps it
+  # into the executable and reuses it for the installer, the uninstaller, the
+  # shortcuts and the Add/Remove Programs entry.
+  icon: assets/app-icons/app_icon.ico
+
+nsis:
+  # A visible installer with a real install step, not a silent one-click drop.
+  oneClick: false
+  # Per-user install: no UAC elevation, and it keeps the app out of
+  # Program Files, which suits a consumer app with no machine-wide component.
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: Aether Library
+  runAfterFinish: true
+
+  # THE CRITICAL LINE. false = uninstalling does NOT delete
+  # %APPDATA%\Aether Library. That directory holds the user's API settings and
+  # their entire Archives history; an uninstall or an over-the-top update must
+  # never take it with them. electron-builder's default is already false, but
+  # this is stated explicitly because it is a data-loss switch and must not be
+  # flipped by accident later.
+  deleteAppDataOnUninstall: false

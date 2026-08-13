@@ -137,6 +137,7 @@ const els = {
   },
   display: {
     windowMode: document.getElementById("display-window-mode"),
+    alwaysOnTop: document.getElementById("display-always-on-top"),
     note: document.getElementById("display-unavailable-note"),
   },
   libraryView: document.getElementById("library-view"),
@@ -1062,6 +1063,8 @@ function localizeStaticUI() {
       };
       for (const opt of wm.options) if (labels[opt.value]) opt.textContent = labels[opt.value];
     }
+    // The checkbox label text lives in its own <span>, so setText is safe here.
+    setText("display-always-on-top-text", "alwaysOnTop");
   }
   setText("ai-setup-hint-text", "aiSetupHint");
   setText("vault-setup-hint-text", "vaultSetupHint");
@@ -6210,6 +6213,22 @@ function desktopShell() {
   return typeof window !== "undefined" && window.__aetherDesktop ? window.__aetherDesktop : null;
 }
 
+// Turns the desktop drag strip on for Borderless Windowed and off everywhere
+// else. That mode has no native title bar, so #desktop-drag-strip is the only
+// way to move the window; in every other mode — and in the browser, where
+// there is no shell at all — the class is absent and the strip stays
+// display:none, so it can never intercept a click.
+//
+// Entering or leaving Borderless recreates the BrowserWindow, which reloads
+// the page, so calling this at boot covers every transition into and out of
+// the mode. It is called after a Settings save as well, for the cases that do
+// not recreate anything.
+function applyDesktopWindowModeClass() {
+  const shell = desktopShell();
+  const borderless = Boolean(shell) && typeof shell.getWindowMode === "function" && shell.getWindowMode() === "borderless";
+  document.body.classList.toggle("desktop-borderless", borderless);
+}
+
 // Whichever settings surface is currently open — both share `sx`, so errors and
 // closes must address the right one.
 function activeSettingsDialog() {
@@ -6270,9 +6289,13 @@ function openSettings(target = "settings") {
   if (els.display.windowMode) {
     const shell = desktopShell();
     els.display.windowMode.disabled = !shell;
+    if (els.display.alwaysOnTop) els.display.alwaysOnTop.disabled = !shell;
     if (els.display.note) els.display.note.hidden = Boolean(shell);
     if (shell && typeof shell.getWindowMode === "function") {
       els.display.windowMode.value = shell.getWindowMode() || "windowed";
+    }
+    if (shell && els.display.alwaysOnTop && typeof shell.getAlwaysOnTop === "function") {
+      els.display.alwaysOnTop.checked = Boolean(shell.getAlwaysOnTop());
     }
   }
   if (target === "ai-config" && els.aiConfig.dialog) {
@@ -6397,6 +6420,23 @@ async function saveSettings(event) {
     // key — let every model for this provider be evaluated fresh.
     for (const id of keyChangedProviders) clearProviderFailures(id);
     await loadStatus();
+    // Window Mode is a DESKTOP-SHELL setting, not a server one: it is applied
+    // through the shell bridge and never travels in the payload above. In the
+    // browser there is no shell and the control stays disabled, so this is a
+    // no-op there and nothing about browser behaviour changes.
+    const shell = desktopShell();
+    if (shell && typeof shell.setWindowMode === "function" && els.display.windowMode && !els.display.windowMode.disabled) {
+      // Always on Top first: it must already be in effect when a mode change
+      // recreates the window, so the new window is created on top rather than
+      // flashing behind whatever it was above.
+      if (typeof shell.setAlwaysOnTop === "function" && els.display.alwaysOnTop) {
+        shell.setAlwaysOnTop(els.display.alwaysOnTop.checked);
+      }
+      shell.setWindowMode(els.display.windowMode.value);
+      // Keeps the drag strip in step for the transitions that do NOT recreate
+      // the window; the ones that do reload the page and re-run this at boot.
+      applyDesktopWindowModeClass();
+    }
     // Visible success feedback, then close shortly after so it is seen.
     activeSettingsDialog().error.textContent = str("saved");
     activeSettingsDialog().error.className = "settings-msg ok";
@@ -11641,7 +11681,12 @@ function applyStartMenuIcon(shell) {
   // width has to be measured once the bitmap is known.
   const sizeToCanvas = () => {
     if (!el.naturalWidth) return;
-    root.setProperty("--start-icon-w", `${(el.naturalWidth / 1920) * 100}%`);
+    // vw, not %. The number is unchanged — it has always meant "this fraction
+    // of the 1920-wide canvas" — but the icon now sits inside .start-content,
+    // where a percentage would resolve against that box instead of the window.
+    // vw keeps the authored meaning, and while the icon was positioned against
+    // the viewport the two units were numerically identical anyway.
+    root.setProperty("--start-icon-w", `${(el.naturalWidth / 1920) * 100}vw`);
   };
   el.onload = sizeToCanvas;
   el.src = `/${path}`;
@@ -13246,6 +13291,10 @@ if (location.hash === "#library") enterLibrary();
 // decides whether this page load has a locked (follow-up) composer or the
 // main one, and therefore which draft belongs in it. `finally` so a failed
 // status/session fetch still gets the player their unsent text back.
+// Desktop-only, and independent of the server: the drag strip must be live
+// from the first paint in Borderless, not after the config round trip.
+applyDesktopWindowModeClass();
+
 loadStatus().then(restoreSession).finally(restoreComposerDraft);
 // Scene UI Content is presentational and independent of session restore, so
 // it loads alongside rather than blocking it. A failure leaves sceneUi null

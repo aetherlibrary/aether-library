@@ -27,7 +27,9 @@ export default {
     windowMode: "視窗模式",
     windowModeWindowed: "視窗化",
     windowModeFullscreen: "全螢幕",
-    windowModeBorderless: "無邊框全螢幕",
+    windowModeBorderless: "無邊框視窗",
+    // 與視窗模式互相獨立，三種模式都可搭配使用。
+    alwaysOnTop: "永遠置頂",
     displayUnavailable: "桌面版應用程式才提供。",
     save: "儲存",
     cancel: "取消",

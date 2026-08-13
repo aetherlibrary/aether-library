@@ -7,6 +7,22 @@
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
+  <!-- ====================================================== desktop drag strip
+       DESKTOP-ONLY, BORDERLESS-ONLY. A frameless window has no title bar to
+       drag, so this thin invisible strip along the top edge provides one.
+
+       It is inert until <body> carries .desktop-borderless, which app.js adds
+       only when the Electron shell reports that mode — so the browser build
+       never has a drag region, and Windowed/Fullscreen keep their native title
+       bar untouched.
+
+       DELIBERATELY A STRIP, NOT THE APP. Marking a large region draggable
+       would swallow clicks on everything inside it: buttons, inputs, the book
+       hotspot, dropdowns and scrollbars all stop responding under
+       -webkit-app-region: drag. Ten pixels at the very top sits inside
+       #app-shell's own 10px padding, above every control (.lib-nav starts
+       ~26px down), so it overlaps nothing interactive. -->
+  <div id="desktop-drag-strip" aria-hidden="true"></div>
   <!-- ============================================================ Start Menu
        First screen: title, version, credit, and the entry actions. Enter
        Library is ALWAYS available — a Vault is optional. The background art is
@@ -23,13 +39,21 @@
          A DIRECT CHILD of #start-menu, not of .start-content: it is positioned
          against the whole 1920×1080 canvas that startMenuTitleX/Y are authored
          in, so changing the art can never shift the buttons. -->
-    <!-- Decorative icon layer. A SEPARATE element from the title image below,
-         and deliberately earlier in the DOM so it composites underneath it.
-         It takes part in no replacement logic: nothing else on the Start Menu
-         changes because an icon is or is not configured. -->
-    <img id="start-icon-image" alt="" draggable="false" hidden />
     <img id="start-title-image" alt="" draggable="false" hidden />
     <div class="start-content">
+      <!-- Decorative icon layer. A SEPARATE element from the title image
+           above, and it takes part in no replacement logic: nothing else on
+           the Start Menu changes because an icon is or is not configured.
+
+           A CHILD OF .start-content, so this box — not the viewport — is what
+           it is positioned against. It used to sit against the whole canvas at
+           an authored Y, which only lined up at 1920x1080: the wordmark is
+           centred by the flex column, so as the window got shorter the title
+           rose past the icon and covered it. Anchoring it to the top of the
+           column instead keeps the two together at every size. It stays
+           ABSOLUTE so it still contributes no height, and the rest of the
+           composition does not move. -->
+      <img id="start-icon-image" alt="" draggable="false" hidden />
       <!-- The wordmark is TEXT, so it stays crisp at any window size. -->
       <h1 class="start-title" id="start-title">Aether Library</h1>
       <!-- Brand statement (identical in every locale) — a quiet subtitle,
@@ -618,10 +642,22 @@
             <select name="windowMode" id="display-window-mode" disabled>
               <option value="windowed">Windowed</option>
               <option value="fullscreen">Fullscreen</option>
-              <option value="borderless">Borderless Fullscreen</option>
+              <!-- The stored value stays "borderless" so existing
+                   desktop-preferences.json files need no migration; only the
+                   label changed when the behaviour became a placed, frameless
+                   window rather than a work-area fill. -->
+              <option value="borderless">Borderless Windowed</option>
             </select>
           </label>
         </div>
+        <!-- Always on Top. Independent of Window Mode: it composes with all
+             three. Reuses the existing checkbox row style rather than
+             introducing a second one. Disabled in the browser for the same
+             reason as the selector above — there is no shell to apply it. -->
+        <label class="council-check-auto-label" id="display-always-on-top-label">
+          <input type="checkbox" id="display-always-on-top" disabled />
+          <span id="display-always-on-top-text">Always on Top</span>
+        </label>
         <p class="muted" id="display-unavailable-note">Available in the desktop app.</p>
       </fieldset>
 

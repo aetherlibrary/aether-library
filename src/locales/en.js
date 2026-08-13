@@ -40,7 +40,9 @@ export default {
     windowMode: "Window Mode",
     windowModeWindowed: "Windowed",
     windowModeFullscreen: "Fullscreen",
-    windowModeBorderless: "Borderless Fullscreen",
+    windowModeBorderless: "Borderless Windowed",
+    // Independent of Window Mode — it composes with all three.
+    alwaysOnTop: "Always on Top",
     displayUnavailable: "Available in the desktop app.",
     save: "Save",
     cancel: "Cancel",

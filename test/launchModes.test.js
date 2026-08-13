@@ -44,11 +44,30 @@ test("npm start runs the production bootstrap, not the server directly", async (
   assert.doesNotMatch(pkg.scripts.start, /cross-env|dotenv-cli|env /, "no new dependency was introduced");
 });
 
-test("the package's default entry is the production bootstrap, not the dev server", async () => {
-  // Nothing reads `main` today (the app is private and always launched through
-  // a script), but a future desktop packager that resolves it must land on the
-  // production-safe entry rather than silently shipping the authoring build.
-  assert.equal(pkg.main, "src/start.js");
+test("the package's default entry is a production-forcing entry, not the dev server", async () => {
+  // `main` is now read for real: electron-builder resolves it to find the
+  // desktop entry point. The ORIGINAL requirement is unchanged and is what
+  // this asserts — whatever `main` points at must force production, so a
+  // packaged build can never silently ship the authoring surface. It is the
+  // production-safety contract that matters here, not one specific filename.
+  const ENTRY_POINTS = { "src/start.js": true, "electron/main.js": true };
+  assert.ok(ENTRY_POINTS[pkg.main], `main must be a known production entry, got ${pkg.main}`);
+
+  // …and the entry it names really does force production, rather than being
+  // trusted to. Both entries set it unconditionally (never ??=), so a stray
+  // NODE_ENV in the environment cannot turn a shipped launch into an
+  // authoring one.
+  const entrySrc = await readSrc(`../${pkg.main}`);
+  assert.match(
+    entrySrc,
+    /process\.env\.NODE_ENV\s*=\s*"production"/,
+    `${pkg.main} must set NODE_ENV=production unconditionally`
+  );
+  assert.doesNotMatch(entrySrc, /NODE_ENV\s*\?\?=/, "must not be a default-if-absent assignment");
+
+  // The browser/server launch is unaffected: npm start still goes through the
+  // original bootstrap regardless of what `main` points at.
+  assert.equal(pkg.scripts.start, "node src/start.js");
 });
 
 test("npm run dev keeps the existing authoring launch, watch included", async () => {

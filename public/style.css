@@ -313,9 +313,24 @@ body {
 #start-icon-image {
   position: absolute;
   left: var(--start-icon-x, 50%);
-  top: var(--start-icon-y, 14.81%);
-  transform: translate(-50%, -50%) scale(var(--start-icon-scale, 1));
-  width: var(--start-icon-w, auto);
+  /* ANCHORED TO THE WORDMARK, NOT TO THE CANVAS.
+     `top` matches .start-content's padding, so this offset IS the title box's
+     top edge; translate(-100%) then hangs the icon entirely above it. That is
+     what makes overlap structurally impossible instead of a tuned coincidence:
+     the icon's bottom can never pass the title's top, at any window size.
+     --start-icon-y no longer applies — a Y authored against the 1920x1080
+     canvas is exactly what broke, because the wordmark is centred by the flex
+     column rather than pinned to a percentage of the height. */
+  top: 2rem;
+  transform: translate(-50%, -100%);
+  /* SIZE: still the authored natural-width x scale, just clamped.
+     calc() resolves to 3.73vw for the shipped icon, which is the same number
+     of pixels the old `width x scale(...)` produced — 54px at 1440, 72px at
+     1920 — so the composition is unchanged across the normal range. The floor
+     keeps it legible when the window is narrow instead of letting it dwindle,
+     and the ceiling stops it growing past its authored size on a wide screen.
+     height:auto preserves the source aspect ratio, as before. */
+  width: clamp(2.25rem, calc(var(--start-icon-w, 53.333vw) * var(--start-icon-scale, 1)), 4.5rem);
   height: auto;
   image-rendering: pixelated;
   user-select: none;
@@ -3112,3 +3127,42 @@ body.author-preview-active #chat-panel > *:not(.author-preview) {
   pointer-events: none;
 }
 .scene-light-blocker-layer svg { display: block; width: 100%; height: 100%; }
+
+/* ------------------------------------------------- desktop drag strip
+   The title bar a frameless window does not have. Present in the markup at
+   all times but INERT unless <body>.desktop-borderless is set, which app.js
+   does only when the Electron shell reports Borderless Windowed — so the
+   browser build and the framed desktop modes are completely unaffected.
+
+   display:none when inactive is what keeps it out of the way: an element
+   carrying -webkit-app-region: drag would otherwise sit over the top edge in
+   every mode and eat clicks there.
+
+   10px tall, full width. That band falls inside #app-shell's own 10px padding
+   and above .lib-nav (which starts ~26px down), so no control is underneath
+   it — nothing needs an explicit no-drag counter-rule today. The z-index sits
+   below the two 1000001/1000002 layers so it can never cover a modal surface,
+   and native <dialog> elements render in the top layer above it regardless. */
+#desktop-drag-strip { display: none; }
+body.desktop-borderless #desktop-drag-strip {
+  display: block;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 10px;
+  z-index: 1000000;
+  /* Invisible: it is a hit region, not a UI element. */
+  background: transparent;
+  -webkit-app-region: drag;
+}
+/* Belt and braces. Anything that later grows into the top 10px stays usable
+   without having to remember this file exists. */
+body.desktop-borderless button,
+body.desktop-borderless a,
+body.desktop-borderless input,
+body.desktop-borderless select,
+body.desktop-borderless textarea,
+body.desktop-borderless dialog {
+  -webkit-app-region: no-drag;
+}
