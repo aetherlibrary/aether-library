@@ -64,6 +64,19 @@ from the interface language.
 
 ## Getting Started
 
+### Windows Desktop App — recommended
+
+1. Download the installer from the
+   [latest release](https://github.com/aetherlibrary/aether-library/releases/latest).
+2. Run it, then launch **Aether Library** like any other application.
+
+Windows 10/11 (x64). Nothing else to install — no Node.js, no terminal.
+
+### Run from Source
+
+For macOS and Linux, or if you would rather run the code directly. A packaged
+macOS build is not available yet.
+
 Requires **Node.js 20 or newer**. There is no build step.
 
 ```bash
@@ -73,12 +86,8 @@ npm start
 
 Then open **http://127.0.0.1:8477**.
 
-`npm start` runs the application in production mode — the normal way to use
-Aether Library.
-
-> **Not a desktop app yet.** The MVP runs from source in your browser against
-> a local server. Packaged Windows and macOS builds are planned but not
-> available yet.
+`npm start` runs the application in production mode — the same application the
+desktop installer ships, served to your browser instead of its own window.
 
 ## AI Configuration
 
@@ -93,9 +102,10 @@ own keys for whichever providers you want to use.
    discussions.
 5. Click **Aetherom** on the table to start your first discussion.
 
-Keys entered here are written to a local `.env.local` file in the project
-folder, which is ignored by git and never sent anywhere except to the provider
-you are calling.
+Keys entered here are written to a local `.env.local` file — in your
+per-user application data folder for the desktop app, or in the project folder
+when running from source. Either way it stays on your machine and is never sent
+anywhere except to the provider you are calling.
 
 ## Vault & Privacy
 
@@ -142,6 +152,7 @@ rather than through **AI Config**.
 ```
 src/            server, services, AI providers, locales
 public/         the application UI — no build step
+electron/       the desktop shell that wraps the same server and UI
 assets/         scenes, characters, props, art and authored content
 config/         product identity and application shell configuration
 test/           node:test suites
@@ -150,16 +161,17 @@ docs/           technical documentation
 
 ## Status
 
-Aether Library is at **v1.0.0**, an MVP. The core loop — configure providers,
-ask through Aetherom in Council or Mentor mode, save to your Vault, reopen from
-Archives — is complete and in daily use.
+Aether Library is at **v1.1.0**, the first release with a Windows installer.
+The core loop — configure providers, ask through Aetherom in Council or Mentor
+mode, save to your Vault, reopen from Archives — is complete and in daily use.
 
-Not yet available: packaged desktop builds, additional Scenes beyond the
+Not yet available: a packaged macOS build, additional Scenes beyond the
 Classic Library, and further languages. See [CHANGELOG.md](CHANGELOG.md) for
 release history and [ROADMAP.md](ROADMAP.md) for what is planned.
 
 ## Links
 
+- **Download** — https://github.com/aetherlibrary/aether-library/releases/latest
 - **GitHub** — https://github.com/aetherlibrary/aether-library
 - **Website** — https://aetherlibrary.app
 - **Discord** — https://discord.gg/Gc9BR5wmt
