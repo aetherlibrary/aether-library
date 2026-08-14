@@ -75,11 +75,12 @@ test("browser mode exposes no desktop capability at all", () => {
 test("first launch is windowed with Always on Top off", () => {
   assert.match(main, /const DEFAULT_WINDOW_MODE = "windowed"/);
   assert.match(main, /const DEFAULT_ALWAYS_ON_TOP = false/);
-  // …and an unreadable or corrupt preferences file falls back to BOTH
-  // defaults rather than to whatever was last attempted.
+  // …and an unreadable or corrupt preferences file falls back to EVERY
+  // default rather than to whatever was last attempted. `port: null` means
+  // "no remembered origin yet", which resolveStablePort reads as first launch.
   assert.match(
     main,
-    /catch \{[\s\S]{0,120}?return \{ windowMode: DEFAULT_WINDOW_MODE, alwaysOnTop: DEFAULT_ALWAYS_ON_TOP, borderlessBounds: null \};/
+    /catch \{[\s\S]{0,160}?return \{ windowMode: DEFAULT_WINDOW_MODE, alwaysOnTop: DEFAULT_ALWAYS_ON_TOP, borderlessBounds: null, port: null \};/
   );
 });
 
@@ -332,4 +333,77 @@ test("the Windows icon is a real multi-resolution ICO, not a renamed PNG", () =>
   }
   assert.deepEqual([...new Set(sizes)].sort((a, b) => a - b), sizes.sort((a, b) => a - b), "duplicate sizes");
   assert.ok(sizes.includes(16) && sizes.includes(256), "16 and 256 are the two Windows actually needs most");
+});
+
+// ============================================ origin stability / first launch
+//
+// THE REGRESSION THIS PINS. The window loads http://127.0.0.1:<port>, and the
+// browser partitions localStorage by ORIGIN — scheme, host AND port. The shell
+// originally chose a fresh random port on every launch, so every launch handed
+// the renderer an empty localStorage and silently reset everything the UI keeps
+// there. The visible symptom was the guided tutorial auto-starting on every
+// launch of the installed EXE, but aether.tutorialSeen was only one of eight
+// keys being wiped.
+//
+// The fix is to remember the port like any other desktop preference, so the
+// origin is stable. That is why these live in the desktop suite: the bug was
+// never in the tutorial code, which is identical in browser mode and correct.
+
+test("the port is remembered, so the renderer's origin is stable across launches", () => {
+  // Read as a preference alongside the others, and validated.
+  assert.match(main, /port: validPort\(raw\?\.port\)/);
+  assert.match(main, /function validPort\(value\) \{[\s\S]{0,200}?Number\.isInteger\(value\) && value >= 1024 && value <= 65535/);
+  // Written by the SAME writer as every other preference — one prefs file,
+  // one writer, no second storage system.
+  assert.match(main, /if \(currentPort\) body\.port = currentPort;/);
+  assert.equal((main.match(/function writePrefs\(/g) || []).length, 1, "still exactly one prefs writer");
+});
+
+test("a remembered port is reused when it is still free, and replaced when it is not", () => {
+  const fn = main.slice(main.indexOf("async function resolveStablePort("), main.indexOf("// ------------------------------------------------------------- readiness"));
+  assert.ok(fn.length > 0, "resolveStablePort exists");
+  // Reuse first…
+  assert.match(fn, /if \(savedPort && \(await portIsFree\(savedPort\)\)\) return savedPort;/);
+  // …and never fail to start if it has been taken.
+  assert.match(fn, /return findFreePort\(\);/);
+  // The probe treats "taken" as an ordinary answer, not an exception.
+  const probe = main.slice(main.indexOf("function portIsFree("), main.indexOf("// THE PORT IS PART OF THE RENDERER'S IDENTITY"));
+  assert.match(probe, /probe\.on\("error", \(\) => resolve\(false\)\);/);
+});
+
+test("preferences are read BEFORE the port is chosen, and a new port is saved at once", () => {
+  const fn = main.slice(main.indexOf("async function start()"), main.indexOf("await import(\"../src/server.js\")"));
+  const prefsAt = fn.indexOf("const saved = readPrefs();");
+  const portAt = fn.indexOf("await resolveStablePort(saved.port)");
+  assert.ok(prefsAt > 0 && portAt > prefsAt, "the remembered port must be read before it can be reused");
+  // First launch (or a port that had to change) persists immediately, so the
+  // very next launch is already stable rather than stable-from-the-third.
+  assert.match(fn, /if \(saved\.port !== port\) writePrefs\(\);/);
+  // findFreePort is no longer called unconditionally at startup.
+  assert.doesNotMatch(fn, /const port = await findFreePort\(\);/);
+});
+
+test("the tutorial's own first-launch rule is untouched by the fix", async () => {
+  // The bug was the origin, not the gate. This stays exactly as it is in
+  // browser mode: one localStorage flag, checked once on entry.
+  assert.match(appJs, /const TUTORIAL_SEEN_KEY = "aether\.tutorialSeen";/);
+  assert.match(appJs, /function maybeAutoStartTutorial\(\) \{\s*if \(hasSeenTutorial\(\)\) return;/);
+  // Completing AND skipping both record it — neither path leaves it unset.
+  const endFn = appJs.slice(appJs.indexOf("function endTutorial()"), appJs.indexOf("function tutorialNext()"));
+  assert.match(endFn, /markTutorialSeen\(\);/);
+  // Manual replay must NOT clear the flag — it replays from step 0 regardless.
+  assert.doesNotMatch(appJs, /removeItem\(TUTORIAL_SEEN_KEY\)/, "replay must never reset first-launch state");
+  // Nothing in the shell reaches into renderer storage to clear it either.
+  assert.doesNotMatch(codeOnly(main), /clearStorageData|localStorage/);
+});
+
+test("window recreation cannot restart the tutorial, because the origin does not move", () => {
+  // Borderless swaps the BrowserWindow, which reloads the page. That reload
+  // keeps the same origin — appOrigin is set once per launch from the resolved
+  // port and is not recomputed per window — so localStorage, and with it
+  // aether.tutorialSeen, survives the swap.
+  assert.equal((main.match(/appOrigin = `http:\/\/127\.0\.0\.1:\$\{port\}`/g) || []).length, 1,
+    "the origin is computed once per launch, not per window");
+  const create = main.slice(main.indexOf("win.loadURL(appOrigin)") - 2000, main.indexOf("win.loadURL(appOrigin)") + 100);
+  assert.match(create, /win\.loadURL\(appOrigin\);/, "every window loads that same origin");
 });

@@ -77,6 +77,10 @@ let currentWindowMode = DEFAULT_WINDOW_MODE;
 const DEFAULT_ALWAYS_ON_TOP = false;
 let alwaysOnTop = DEFAULT_ALWAYS_ON_TOP;
 
+// The port this launch is serving on, remembered so the next launch can reuse
+// it and keep the renderer's origin — and its localStorage — stable.
+let currentPort = null;
+
 // The origin the window loads. Held at module scope because recreating the
 // window needs it again, long after start() has returned.
 let appOrigin = null;
@@ -208,11 +212,23 @@ function readPrefs() {
       // placement yet", and the fallback chain in applyWindowGeometry takes
       // over. A malformed rectangle is treated the same way.
       borderlessBounds: validBounds(raw?.borderlessBounds),
+      // The port the renderer was last served from — see resolveStablePort.
+      // Absent in files written before this was remembered, which just means
+      // "pick one and start remembering". Only a plausible, non-privileged
+      // port is accepted; anything else is treated as absent.
+      port: validPort(raw?.port),
     };
   } catch {
     // Missing or corrupt — first launch defaults.
-    return { windowMode: DEFAULT_WINDOW_MODE, alwaysOnTop: DEFAULT_ALWAYS_ON_TOP, borderlessBounds: null };
+    return { windowMode: DEFAULT_WINDOW_MODE, alwaysOnTop: DEFAULT_ALWAYS_ON_TOP, borderlessBounds: null, port: null };
   }
+}
+
+// A saved port is only usable if it is a whole number in the unprivileged
+// range. Anything else (a string, a float, 0, 80) falls back to null so a
+// hand-edited file cannot make startup fail.
+function validPort(value) {
+  return Number.isInteger(value) && value >= 1024 && value <= 65535 ? value : null;
 }
 
 function writePrefs() {
@@ -222,6 +238,10 @@ function writePrefs() {
     // Only written once there is something to remember, so the file keeps its
     // previous shape for anyone who never uses Borderless.
     if (borderlessBounds) body.borderlessBounds = borderlessBounds;
+    // Keeps the renderer's origin — and therefore its localStorage — stable
+    // across launches. Written from the same place as everything else here so
+    // there is one prefs writer, not two.
+    if (currentPort) body.port = currentPort;
     fs.writeFileSync(prefsPath, `${JSON.stringify(body, null, 2)}\n`, "utf8");
   } catch (err) {
     // A preference that cannot be saved must not take the application down.
@@ -419,6 +439,40 @@ function findFreePort() {
   });
 }
 
+// Can we still have the port we used last time? Resolves false rather than
+// throwing, because "someone else has it" is an ordinary outcome here.
+function portIsFree(port) {
+  return new Promise((resolve) => {
+    const probe = net.createServer();
+    probe.unref();
+    probe.on("error", () => resolve(false));
+    probe.listen(port, "127.0.0.1", () => probe.close((err) => resolve(!err)));
+  });
+}
+
+// THE PORT IS PART OF THE RENDERER'S IDENTITY, not just a connection detail.
+//
+// The window loads http://127.0.0.1:<port>, and the browser partitions
+// localStorage by ORIGIN — scheme, host AND port. A fresh random port on every
+// launch therefore handed the renderer a brand-new, empty localStorage each
+// time, which silently reset every piece of state the UI keeps there:
+// aether.tutorialSeen (so the guided tutorial replayed on every launch), the
+// two setup-hint flags, the session-recovery pointer, the model-failure
+// memory, the composer drafts and the Quick Actions toggle.
+//
+// So the port is remembered like any other desktop preference. Reusing it
+// keeps the origin stable, which is what makes all of that state persist —
+// no second storage system, and nothing for the renderer to know about.
+//
+// If the remembered port is taken (another program claimed it while we were
+// closed), a new one is chosen and saved. That single launch starts from a
+// fresh origin; every launch after it is stable again. Falling back is
+// strictly better than failing to start.
+async function resolveStablePort(savedPort) {
+  if (savedPort && (await portIsFree(savedPort))) return savedPort;
+  return findFreePort();
+}
+
 // ------------------------------------------------------------- readiness
 //
 // Importing src/server.js returns as soon as the module finishes evaluating,
@@ -604,7 +658,6 @@ function wireWindow(win) {
 
 // ------------------------------------------------------------------ start
 async function start() {
-  const port = await findFreePort();
   const userData = app.getPath("userData");
 
   // No File / Edit / View / Window menu. Aether Library has no use for it, and
@@ -613,11 +666,18 @@ async function start() {
   // bar is untouched — minimize, maximize/restore and close all remain.
   Menu.setApplicationMenu(null);
 
-  // Desktop preferences live beside the rest of the user's data.
+  // Desktop preferences live beside the rest of the user's data. Read BEFORE
+  // the port is chosen: the remembered port is one of them, and reusing it is
+  // what keeps the renderer's origin stable across launches.
   prefsPath = path.join(userData, "desktop-preferences.json");
   const saved = readPrefs();
   currentWindowMode = saved.windowMode;
   alwaysOnTop = saved.alwaysOnTop;
+  const port = await resolveStablePort(saved.port);
+  currentPort = port;
+  // Persist immediately on first launch, or when the remembered port had to
+  // change — so the very next launch is already stable.
+  if (saved.port !== port) writePrefs();
   borderlessBounds = saved.borderlessBounds;
 
   // Narrow IPC surface: one readable snapshot and two writable values. No
