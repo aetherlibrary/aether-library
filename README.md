@@ -161,9 +161,10 @@ docs/           technical documentation
 
 ## Status
 
-Aether Library is at **v1.1.0**, the first release with a Windows installer.
-The core loop — configure providers, ask through Aetherom in Council or Mentor
-mode, save to your Vault, reopen from Archives — is complete and in daily use.
+Aether Library is at **v1.1.1**, a hotfix on the first release with a Windows
+installer. The core loop — configure providers, ask through Aetherom in Council
+or Mentor mode, save to your Vault, reopen from Archives — is complete and in
+daily use.
 
 Not yet available: a packaged macOS build, additional Scenes beyond the
 Classic Library, and further languages. See [CHANGELOG.md](CHANGELOG.md) for
