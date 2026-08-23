@@ -72,6 +72,11 @@ export const PROVIDER_DEFS = [
   { id: "openai", prefix: "OPENAI", label: "OpenAI / GPT", short: "GPT", defaultModel: "gpt-5.1" },
   { id: "anthropic", prefix: "ANTHROPIC", label: "Anthropic / Claude", short: "Claude", defaultModel: "claude-sonnet-4-5" },
   { id: "google", prefix: "GOOGLE", label: "Google / Gemini", short: "Gemini", defaultModel: "gemini-2.5-pro" },
+  // THIS ARRAY IS THE PRESENTATION ORDER. publicConfig() builds
+  // `providers` by mapping over it, and every frontend list iterates that
+  // object, so the sequence here is what the AI Config toggles, the
+  // configuration sections and the model selectors all render.
+  { id: "xai", prefix: "XAI", label: "xAI / Grok", short: "Grok", defaultModel: "grok-4.6" },
   // "Perplexity / Sonar", not bare "Perplexity": this integration speaks the
   // Sonar API only. Perplexity's Agent API (third-party models via
   // /v1/agent) is a different transport and is deliberately not supported —

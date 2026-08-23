@@ -12,10 +12,13 @@ import { config, PROVIDER_DEFS } from "../config.js";
 import * as openai from "./openai.js";
 import * as anthropic from "./anthropic.js";
 import * as google from "./google.js";
+import * as xai from "./xai.js";
 import * as perplexity from "./perplexity.js";
 import * as deepseek from "./deepseek.js";
 
-const impls = { openai, anthropic, google, perplexity, deepseek };
+// Lookup only — the ORDER providers appear in is PROVIDER_DEFS', not this
+// object's, because the loop below walks PROVIDER_DEFS.
+const impls = { openai, anthropic, google, xai, perplexity, deepseek };
 
 export const providers = {};
 for (const def of PROVIDER_DEFS) {

@@ -211,7 +211,7 @@ test("the Sonar scope is stated in the UI, in both locales", async () => {
   assert.match(appJs, /const scope = id === "perplexity" \? ` — \$\{str\("perplexitySonarNote"\)\}` : "";/);
 });
 
-test("no Agent API and no xAI provider came with this change", async () => {
+test("Perplexity still speaks Sonar only — no Agent API, and no routing to xAI through it", async () => {
   const sources = await Promise.all([
     readSource("../src/providers/perplexity.js"),
     readSource("../src/providers/openai-compat.js"),
@@ -219,28 +219,31 @@ test("no Agent API and no xAI provider came with this change", async () => {
     readSource("../src/config.js"),
     readSource("../src/config/supported-models.js"),
   ]);
-  // Comments are stripped first: these files DOCUMENT the Agent API and the
-  // xAI ids precisely so a future reader knows they were considered and
-  // excluded. What must not exist is code that reaches them.
+  // Comments are stripped first: these files DOCUMENT the Agent API
+  // precisely so a future reader knows it was considered and excluded. What
+  // must not exist is code that reaches it.
   const codeOnly = (src) =>
     src
       .split("\n")
       .filter((line) => !line.trim().startsWith("//"))
       .join("\n");
   for (const src of sources) {
-    const code = codeOnly(src);
-    // No Agent transport, discovery or parser.
-    assert.doesNotMatch(code, /\/v1\/agent|\/v1\/responses|max_output_tokens/);
-    // No xAI provider.
-    assert.doesNotMatch(code, /\bxai\b|x\.ai|grok/i);
+    // No Agent transport, discovery or parser, anywhere.
+    assert.doesNotMatch(codeOnly(src), /\/v1\/agent|\/v1\/responses|max_output_tokens/);
   }
+  // xAI IS a first-class provider now (src/providers/xai.js), so the shared
+  // files legitimately name it. What must stay true is that PERPLEXITY never
+  // reaches xAI: Perplexity's Agent catalog carries xai/* models, and routing
+  // to them would need the Agent transport this integration does not speak.
+  assert.doesNotMatch(codeOnly(sources[0]), /\bxai\b|x\.ai|grok/i);
   // The provider's executable code names exactly one host, and no endpoint
   // path of its own — the transport lives in openai-compat.
   const urls = [...codeOnly(sources[0]).matchAll(/https:\/\/[^\s"'`)]+/g)].map((m) => m[0]);
   assert.deepEqual([...new Set(urls)], ["https://api.perplexity.ai"]);
-  // The provider registry still has exactly the five known providers.
-  const { PROVIDER_DEFS: defs } = await import("../src/config.js");
-  assert.deepEqual(defs.map((d) => d.id), ["openai", "anthropic", "google", "perplexity", "deepseek"]);
+  // And xAI reaches its OWN host, never Perplexity's.
+  const xaiCode = codeOnly(await readSource("../src/providers/xai.js"));
+  const xaiUrls = [...xaiCode.matchAll(/https:\/\/[^\s"'`)]+/g)].map((m) => m[0]);
+  assert.deepEqual([...new Set(xaiUrls)], ["https://api.x.ai/v1"]);
 });
 
 test("other providers' discovery behaviour is untouched", async () => {

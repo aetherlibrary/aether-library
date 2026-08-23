@@ -82,6 +82,31 @@ export const SUPPORTED_MODELS = {
     { id: "gemini-3.1-flash-lite", fast: true, reasoning: false, budget: true, experimental: false },
     { id: "gemini-3.5-flash", fast: true, reasoning: false, budget: false, experimental: false },
   ],
+  // xAI GROK text models, reachable through POST /v1/chat/completions.
+  //
+  // Excluded on purpose, all of them non-text or non-general:
+  //   grok-imagine-image*      image generation
+  //   grok-imagine-video*      video generation
+  //   grok-voice-*             voice/audio
+  //   grok-build-*             coding/agent build, the same reason openai's
+  //                            list drops *-codex*
+  //
+  // The grok-4.20-0309-* entries are dated internal builds in the same spirit
+  // as the gpt-5.6 codenames openai's list excludes, so they are carried as
+  // `experimental` — visible only once a "Show Preview / Experimental Models"
+  // toggle exists, never in the default intersection.
+  //
+  // The Grok 4 family are reasoning models, and `reasoning: true` is not
+  // cosmetic: it is what stops the Council Pre-check sending an output cap
+  // that a reasoning model cannot answer within.
+  xai: [
+    { id: "grok-4.6", fast: false, reasoning: true, budget: false, experimental: false },
+    { id: "grok-4.5", fast: false, reasoning: true, budget: false, experimental: false },
+    { id: "grok-4.3", fast: false, reasoning: true, budget: false, experimental: false },
+    { id: "grok-4.20-0309-reasoning", fast: false, reasoning: true, budget: false, experimental: true },
+    { id: "grok-4.20-0309-non-reasoning", fast: false, reasoning: false, budget: false, experimental: true },
+    { id: "grok-4.20-multi-agent-0309", fast: false, reasoning: true, budget: false, experimental: true },
+  ],
   deepseek: [
     // The only two general-purpose models DeepSeek documents.
     { id: "deepseek-chat", fast: false, reasoning: false, budget: true, experimental: false },

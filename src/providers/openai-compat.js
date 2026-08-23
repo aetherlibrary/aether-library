@@ -19,8 +19,13 @@ const LIST_TIMEOUT_MS = 30_000;
 // the middle ("chatgpt-image-latest"), not just ones with hyphens on both
 // sides. Best-effort by name; the provider's own /models listing already
 // scopes to what this API key can see.
+// `voice` was added for xAI, whose /v1/models lists grok-voice-* alongside
+// the chat models; they 400 on /chat/completions like every other family
+// here. It is a whole-token match, and no curated model of any existing
+// provider contains a `voice` token, so this widens the filter for xAI
+// without changing what OpenAI/DeepSeek/Perplexity list.
 const NON_TEXT_RE =
-  /(^|-)(embeddings?|tts|transcribe|transcription|whisper|audio|realtime|speech|moderation|images?|dall-?e|sora|video|instruct|babbage|davinci|curie|ada)(-|$)/i;
+  /(^|-)(embeddings?|tts|transcribe|transcription|whisper|audio|realtime|speech|voice|moderation|images?|dall-?e|sora|video|instruct|babbage|davinci|curie|ada)(-|$)/i;
 
 // `tokenLimitField` (optional, default "max_tokens"): the JSON field name
 // this provider's /chat/completions actually accepts for an output-token
