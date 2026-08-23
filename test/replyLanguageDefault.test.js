@@ -111,6 +111,39 @@ test("an explicitly saved Match round-trips as Match", () => {
   assert.equal(reload().defaultReplyLanguage, MATCH_QUESTION_LANGUAGE);
 });
 
+// WHY AN EXISTING MACHINE LEGITIMATELY CONTAINS `en`.
+//
+// Verified on a real M2 Mac: Aether opened with Default Reply Language =
+// English rather than Match. That machine had saved Settings BEFORE the Match
+// migration existed, and the old dialog made that unavoidable — the reply
+// language rode along in the UNCONDITIONAL settings payload
+// (`defaultReplyLanguage: sx.lang.value`, beside interfaceLanguage and theme),
+// while the dropdown itself defaulted to `currentConfig.defaultReplyLanguage
+// || "en"`. So changing only a theme wrote DEFAULT_REPLY_LANGUAGE=en to disk.
+//
+// On disk that is indistinguishable from a deliberate choice. Keeping it is
+// the correct, non-destructive resolution of an ambiguity the data cannot
+// settle — this test exists so that "English on an upgraded machine" is
+// recognised as expected migration behaviour, not rediscovered as a bug.
+test("a pre-migration install carries an auto-written `en`, and keeps it", async () => {
+  const { saveSettings } = await import("../src/services/settings.js");
+
+  // Nothing configured yet: the new default applies.
+  assert.equal(reload().defaultReplyLanguage, MATCH_QUESTION_LANGUAGE);
+
+  // Exactly what the OLD dialog sent when the user changed only the theme.
+  saveSettings({ theme: "light", defaultReplyLanguage: "en" });
+
+  const written = await fs.readFile(envPath, "utf8");
+  assert.match(written, /^DEFAULT_REPLY_LANGUAGE=en$/m, "an unrelated save wrote a concrete language");
+
+  // And that value is honoured from then on, never quietly upgraded to Match.
+  assert.equal(reload().defaultReplyLanguage, "en");
+
+  // Reset the shared temp env file for the tests that follow.
+  await fs.writeFile(envPath, "", "utf8");
+});
+
 test("the default applies only when NOTHING was configured", async () => {
   const src = (await fs.readFile(new URL("../src/config.js", import.meta.url), "utf8")).replace(/\r\n/g, "\n");
   // Three tiers, in this order: current key, legacy key, then the default.

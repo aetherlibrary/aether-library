@@ -518,6 +518,326 @@ test("the tutorial's own first-launch rule is untouched by the fix", async () =>
   assert.doesNotMatch(codeOnly(main), /clearStorageData|localStorage/);
 });
 
+// ------------------------------------------- saving Settings and the window
+//
+// THE BUG THESE PIN. Saving ANY setting moved the window back to where it had
+// opened. Reported on a real M2 Mac, but nothing about it is macOS-specific:
+// the whole path is shared, so Windows did the same thing.
+//
+// Two independent faults, both fixed, each pinned separately below:
+//   1. saveSettings() re-sends the CURRENT Window Mode on every save (it is a
+//      shell setting and never travels in the /api/settings payload), and
+//      setWindowMode() ran the full mode change for it — including geometry.
+//   2. `windowedBounds` was captured ONCE, from the constructor, and never
+//      updated, so it permanently described the LAUNCH rectangle rather than
+//      wherever the user had since dragged the window.
+//
+// These execute the real source rather than matching on it: the whole point is
+// that setBounds must not be CALLED, which a regex cannot show.
+
+// Runs the actual applyWindowGeometry + setWindowMode source against stubs, so
+// the assertions are about behaviour. Everything the two functions reach that
+// is not under test (the swap, prefs I/O, the renderer push, always-on-top) is
+// replaced by a recorder.
+// `isFullScreen` is the WINDOW's real state, deliberately separate from
+// `currentWindowMode` (which is only what was last requested). The two
+// disagreeing is the whole subject of the macOS fullscreen tests below.
+function runWindowModeHarness({ mode, currentWindowMode, currentFrameless, windowedBounds, bounds, isFullScreen = false }) {
+  const slice = (from, to) => main.slice(main.indexOf(from), main.indexOf(to));
+  const source = slice("function applyWindowGeometry(win, mode)", "// Replaces the window with one built at the requested frame state.") +
+    slice("function windowIsInMode(win, mode)", "// ---------------------------------------------------------------- port pick");
+
+  const calls = { setBounds: [], setFullScreen: [], writePrefs: 0, notifyRenderer: 0, swapWindow: 0 };
+  const win = {
+    isDestroyed: () => false,
+    isFullScreen: () => isFullScreen,
+    isMinimized: () => false,
+    getBounds: () => ({ ...bounds }),
+    setBounds: (b) => calls.setBounds.push(b),
+    setFullScreen: (v) => calls.setFullScreen.push(v),
+    once: () => {},
+  };
+
+  const state = { currentWindowMode, currentFrameless, windowedBounds, borderlessBounds: null, placingWindow: false };
+  const factory = new Function(
+    "state", "win", "calls", "WINDOW_MODES", "needsFrameless", "validBounds", "clampToVisibleDisplay",
+    "endPlacement", "applyAlwaysOnTop", "writePrefs", "notifyRenderer", "swapWindow", "mainWindow",
+    `
+    let { currentWindowMode, currentFrameless, windowedBounds, borderlessBounds, placingWindow } = state;
+    ${source}
+    return (mode) => {
+      const result = setWindowMode(mode);
+      Object.assign(state, { currentWindowMode, currentFrameless, windowedBounds });
+      return result;
+    };
+    `
+  );
+
+  const run = factory(
+    state, win, calls,
+    ["windowed", "fullscreen", "borderless"],
+    (m) => m === "borderless",
+    (b) => (b ? { ...b } : null),
+    (b) => (b ? { ...b } : null),
+    () => {},
+    () => {},
+    () => calls.writePrefs++,
+    () => calls.notifyRenderer++,
+    () => {
+      calls.swapWindow++;
+      return win;
+    },
+    win
+  );
+
+  return { result: run(mode), calls, state };
+}
+
+test("saving Settings with the mode unchanged never touches the window", () => {
+  // The exact reproduction: a windowed app, saving an unrelated setting, which
+  // re-sends "windowed". Nothing may be positioned or resized.
+  const { result, calls } = runWindowModeHarness({
+    mode: "windowed",
+    currentWindowMode: "windowed",
+    currentFrameless: false,
+    // Deliberately NOT where the window is: this is the stale launch rectangle
+    // the old code would have snapped back to.
+    windowedBounds: { x: 100, y: 100, width: 1440, height: 900 },
+    bounds: { x: 2200, y: 640, width: 1180, height: 780 },
+  });
+
+  assert.equal(result, "windowed", "the mode in effect is still reported");
+  assert.deepEqual(calls.setBounds, [], "x/y and width/height must both be left alone");
+  assert.deepEqual(calls.setFullScreen, [], "no fullscreen transition either");
+  assert.equal(calls.swapWindow, 0, "and no window recreation");
+});
+
+test("the same guard holds for Fullscreen and Borderless saves", () => {
+  // Saving while in fullscreen must not re-enter fullscreen, and saving while
+  // borderless must not re-place the borderless window.
+  // The window must genuinely BE fullscreen for the skip to apply — see the
+  // macOS tests below for why the recorded mode alone is not enough.
+  const fs = runWindowModeHarness({
+    mode: "fullscreen", currentWindowMode: "fullscreen", currentFrameless: false, isFullScreen: true,
+    windowedBounds: { x: 100, y: 100, width: 1440, height: 900 },
+    bounds: { x: 0, y: 0, width: 2560, height: 1440 },
+  });
+  assert.equal(fs.result, "fullscreen");
+  assert.deepEqual(fs.calls.setFullScreen, [], "already fullscreen — nothing to request");
+  assert.deepEqual(fs.calls.setBounds, [], "and saving a setting must not drop out of fullscreen");
+
+  const bl = runWindowModeHarness({
+    mode: "borderless", currentWindowMode: "borderless", currentFrameless: true,
+    windowedBounds: { x: 100, y: 100, width: 1440, height: 900 },
+    bounds: { x: 900, y: 300, width: 700, height: 500 },
+  });
+  assert.equal(bl.result, "borderless");
+  assert.deepEqual(bl.calls.setBounds, [], "a placed borderless window stays where the user put it");
+  assert.equal(bl.calls.swapWindow, 0, "the frame state already matches — no recreation");
+});
+
+test("a REAL mode change still applies geometry — the guard is not a blanket off-switch", () => {
+  // Windowed -> Fullscreen: the user asked for this, so it must happen.
+  const toFull = runWindowModeHarness({
+    mode: "fullscreen", currentWindowMode: "windowed", currentFrameless: false,
+    windowedBounds: { x: 100, y: 100, width: 1440, height: 900 },
+    bounds: { x: 300, y: 200, width: 1200, height: 800 },
+  });
+  assert.equal(toFull.result, "fullscreen");
+  assert.deepEqual(toFull.calls.setFullScreen, [true], "Fullscreen still works");
+
+  // Fullscreen -> Windowed restores the remembered placement.
+  const toWindowed = runWindowModeHarness({
+    mode: "windowed", currentWindowMode: "fullscreen", currentFrameless: false,
+    windowedBounds: { x: 2200, y: 640, width: 1180, height: 780 },
+    bounds: { x: 0, y: 0, width: 2560, height: 1440 },
+  });
+  assert.deepEqual(toWindowed.calls.setBounds, [{ x: 2200, y: 640, width: 1180, height: 780 }]);
+
+  // Windowed -> Borderless changes the frame state, so it recreates.
+  const toBorderless = runWindowModeHarness({
+    mode: "borderless", currentWindowMode: "windowed", currentFrameless: false,
+    windowedBounds: { x: 100, y: 100, width: 1440, height: 900 },
+    bounds: { x: 300, y: 200, width: 1200, height: 800 },
+  });
+  assert.equal(toBorderless.calls.swapWindow, 1, "Borderless still recreates the window");
+});
+
+test("windowed bounds follow the user's own moves, not just the launch rectangle", () => {
+  // Fault 2. The seed stays (there must be something to restore before the
+  // user has touched anything), but it is no longer the only value recorded.
+  assert.match(main, /if \(!frameless && !windowedBounds\) windowedBounds = win\.getBounds\(\);/);
+  assert.match(main, /function rememberWindowedBounds\(win\)/);
+  const build = main.slice(main.indexOf("function buildWindow("), main.indexOf("function wireWindow("));
+  assert.match(
+    build,
+    /if \(!frameless\) \{\s*for \(const event of \["move", "moved", "resize", "resized"\]\) \{\s*win\.on\(event, \(\) => rememberWindowedBounds\(win\)\);/,
+    "a framed window must report its own geometry changes"
+  );
+
+  // A deliberate placement by this module is not a user move. Leaving
+  // fullscreen emits resize BEFORE the leave-full-screen callback restores the
+  // bounds, so without this the restore would overwrite its own target.
+  const remember = main.slice(main.indexOf("function rememberWindowedBounds(win)"), main.indexOf("// Reads BOTH preferences"));
+  assert.match(remember, /if \(placingWindow\) return;/);
+  assert.match(remember, /if \(currentWindowMode !== "windowed"\) return;/);
+  assert.match(remember, /win\.isFullScreen\(\) \|\| win\.isMinimized\(\)/, "a minimized or fullscreen rectangle is not a placement");
+  assert.match(main, /placingWindow = true;/);
+  // Released a tick later, because setBounds' own events arrive asynchronously.
+  assert.match(main, /function endPlacement\(\) \{\s*setTimeout\(\(\) => \{\s*placingWindow = false;/);
+
+  // Windowed placement stays in memory. Only Borderless is persisted, and this
+  // must not have quietly started writing a file on every drag.
+  const prefs = main.slice(main.indexOf("function writePrefs()"), main.indexOf("function prefsSnapshot()"));
+  assert.doesNotMatch(prefs, /windowedBounds/, "windowed placement is deliberately not persisted");
+});
+
+// ------------------------------------------------------ macOS fullscreen
+//
+// THE BUG THESE PIN. On a real M2 Mac the Fullscreen control did nothing
+// visible — no crash, no error, while Windowed and Borderless both worked.
+//
+// The mechanism is a DESYNC plus a guard that trusted the wrong source.
+// `currentWindowMode` records what was last REQUESTED, not what the window
+// actually is, and on macOS those come apart easily: native fullscreen is an
+// asynchronous window-manager transition that can be refused, and the green
+// button / Ctrl+Cmd+F enter it without going through Settings at all. Once the
+// record said "fullscreen" while the window was not, the no-op guard added
+// with the window-position fix skipped every later request as redundant — so
+// the control was not merely failing, it had become unrecoverable through the
+// UI. Measured on real Electron 43.4.0: setFullScreen(true) is SYNCHRONOUS on
+// Windows (isFullScreen() is already true on the next line), which is why the
+// same code path never showed this there.
+
+test("Fullscreen recovers when the recorded mode has desynced from the window", () => {
+  // The exact reported state: the record claims fullscreen, the window is not.
+  const { calls } = runWindowModeHarness({
+    mode: "fullscreen",
+    currentWindowMode: "fullscreen",
+    currentFrameless: false,
+    isFullScreen: false, // <- the window disagrees with the record
+    windowedBounds: { x: 100, y: 100, width: 1440, height: 900 },
+    bounds: { x: 300, y: 200, width: 1200, height: 800 },
+  });
+  assert.deepEqual(calls.setFullScreen, [true], "the request must reach the window, not be skipped as redundant");
+});
+
+test("the no-op guard asks the WINDOW, not just the recorded mode", () => {
+  const guard = main.slice(main.indexOf("function windowIsInMode(win, mode)"), main.indexOf("function setWindowMode(mode)"));
+  // Fullscreen is answered by the window itself.
+  assert.match(guard, /if \(mode === "fullscreen"\) return win\.isFullScreen\(\);/);
+  // A fullscreen window is in NEITHER of the other two modes, whatever the
+  // frame state says — otherwise a natively-fullscreened window would report
+  // itself as "windowed" and the guard would skip the way back out.
+  assert.match(guard, /if \(win\.isFullScreen\(\)\) return false;/);
+  assert.match(guard, /return currentFrameless === needsFrameless\(mode\);/);
+  // And the guard actually consults it.
+  const setMode = main.slice(main.indexOf("function setWindowMode(mode)"), main.indexOf("// ---------------------------------------------------------------- port pick"));
+  assert.match(
+    setMode,
+    /if \(mode === currentWindowMode && needsFrameless\(mode\) === currentFrameless && windowIsInMode\(win, mode\)\) \{/
+  );
+});
+
+test("entering fullscreen outside Settings keeps the recorded mode truthful", () => {
+  // The mirror of the existing leave-full-screen handler. Its absence is what
+  // let the record drift on macOS, where the green button and Ctrl+Cmd+F are
+  // ordinary ways to enter fullscreen.
+  const build = main.slice(main.indexOf("function buildWindow("), main.indexOf("function wireWindow("));
+  assert.match(build, /win\.on\("enter-full-screen", \(\) => \{/);
+  const handler = build.slice(build.indexOf('win.on("enter-full-screen"'));
+  assert.match(handler, /if \(currentWindowMode === "fullscreen"\) return;/, "already recorded — nothing to do");
+  assert.match(handler, /currentWindowMode = "fullscreen";/);
+  assert.match(handler, /writePrefs\(\);/);
+  assert.match(handler, /notifyRenderer\(\);/, "the renderer's cached mode must not drift either");
+  // Deliberately NOT setWindowMode(): the window has already made the
+  // transition, so re-running geometry would re-apply a change that happened.
+  assert.doesNotMatch(handler.slice(0, handler.indexOf("});")), /setWindowMode/);
+  // The existing leave-full-screen handler is untouched.
+  assert.match(build, /win\.on\("leave-full-screen", \(\) => \{\s*if \(currentWindowMode === "fullscreen"\) setWindowMode\("windowed"\);/);
+});
+
+test("a swapped-in window re-asserts fullscreen after it is shown", () => {
+  // Every window is built hidden to avoid the white flash, and macOS will not
+  // take a fullscreen request for a window that is not on screen yet. The
+  // constructor's `fullscreen` option covers a normal launch; a window swapped
+  // in for Borderless -> Fullscreen is what needed this.
+  const ready = main.slice(main.indexOf('win.once("ready-to-show"'), main.indexOf('win.on("leave-full-screen"'));
+  const showAt = ready.indexOf("win.show();");
+  const reassertAt = ready.indexOf('currentWindowMode === "fullscreen" && !win.isDestroyed() && !win.isFullScreen()');
+  assert.ok(showAt !== -1 && reassertAt !== -1, "both steps are present");
+  assert.ok(reassertAt > showAt, "the re-assert must come AFTER show(), which is the entire point");
+  assert.match(ready.slice(reassertAt), /win\.setFullScreen\(true\);/);
+  // Still requested at construction too, so a launch that starts fullscreen
+  // never flashes a windowed frame first.
+  assert.match(main, /fullscreen: currentWindowMode === "fullscreen",/);
+});
+
+test("Borderless -> Fullscreen -> Windowed behaves sensibly", () => {
+  // Borderless to Fullscreen changes the frame state, so it recreates the
+  // window; the re-assert above is what makes the new one actually fullscreen.
+  const toFull = runWindowModeHarness({
+    mode: "fullscreen", currentWindowMode: "borderless", currentFrameless: true, isFullScreen: false,
+    windowedBounds: { x: 100, y: 100, width: 1440, height: 900 },
+    bounds: { x: 900, y: 300, width: 700, height: 500 },
+  });
+  assert.equal(toFull.calls.swapWindow, 1, "the frame state changes, so the window is rebuilt");
+  assert.equal(toFull.state.currentWindowMode, "fullscreen");
+
+  // ...and back to Windowed from there leaves fullscreen rather than sticking.
+  const toWindowed = runWindowModeHarness({
+    mode: "windowed", currentWindowMode: "fullscreen", currentFrameless: false, isFullScreen: true,
+    windowedBounds: { x: 2200, y: 640, width: 1180, height: 780 },
+    bounds: { x: 0, y: 0, width: 2560, height: 1440 },
+  });
+  assert.deepEqual(toWindowed.calls.setFullScreen, [false]);
+});
+
+test("Windowed and Borderless saves are unaffected by the fullscreen fix", () => {
+  // The window-position fix must still hold: a save that changes nothing still
+  // touches nothing, in the modes where the record and the window agree.
+  for (const [currentWindowMode, currentFrameless] of [["windowed", false], ["borderless", true]]) {
+    const { calls } = runWindowModeHarness({
+      mode: currentWindowMode, currentWindowMode, currentFrameless, isFullScreen: false,
+      windowedBounds: { x: 100, y: 100, width: 1440, height: 900 },
+      bounds: { x: 2200, y: 640, width: 1180, height: 780 },
+    });
+    assert.deepEqual(calls.setBounds, [], `${currentWindowMode}: saving must not move the window`);
+    assert.deepEqual(calls.setFullScreen, [], `${currentWindowMode}: saving must not touch fullscreen`);
+  }
+});
+
+test("the fullscreen fix is shared logic, with no platform branch", () => {
+  const region = main.slice(main.indexOf("function windowIsInMode(win, mode)"), main.indexOf("// ---------------------------------------------------------------- port pick"));
+  assert.doesNotMatch(codeOnly(region), /isMac|darwin|win32|process\.platform/, "one implementation for both platforms");
+  const build = main.slice(main.indexOf("function buildWindow("), main.indexOf("function wireWindow("));
+  const handler = build.slice(build.indexOf('win.on("enter-full-screen"'));
+  assert.doesNotMatch(codeOnly(handler.slice(0, 400)), /isMac|darwin|process\.platform/);
+});
+
+test("the recentering fix is shared, not duplicated per platform", () => {
+  // The bug was in shared window-state logic. A platform branch here would be
+  // the wrong shape of fix — and would leave Windows still doing it.
+  const geometry = main.slice(main.indexOf("function applyWindowGeometry"), main.indexOf("// ---------------------------------------------------------------- port pick"));
+  assert.doesNotMatch(codeOnly(geometry), /isMac|darwin|win32|process\.platform/, "no platform branch in the window-state path");
+  const remember = main.slice(main.indexOf("function rememberWindowedBounds(win)"), main.indexOf("// Reads BOTH preferences"));
+  assert.doesNotMatch(codeOnly(remember), /isMac|darwin|win32|process\.platform/);
+});
+
+test("macOS lifecycle and the always-on-top rescue are untouched by the fix", () => {
+  // Cmd+W leaves the app in the Dock; the Dock reopens it against the same
+  // warm origin. Neither is reached through the geometry path.
+  // PUBLIC checks the platform inline where DEV factored out an `isMac` const —
+  // same behaviour, different spelling, and public's comment between the two
+  // lines is longer, hence the wider span.
+  assert.match(main, /app\.on\("window-all-closed", \(\) => \{[\s\S]{0,500}?if \(process\.platform === "darwin"\) return;/);
+  assert.match(main, /app\.on\("activate", \(\) => \{/);
+  // Always on Top still composes with every mode, and still puts back a
+  // rectangle Windows' z-order reshuffle moved.
+  assert.match(main, /win\.setAlwaysOnTop\(alwaysOnTop\);/);
+  assert.match(main, /if \(after && \(after\.x !== before\.x \|\| after\.y !== before\.y\)\) win\.setBounds\(before\);/);
+});
+
 test("window recreation cannot restart the tutorial, because the origin does not move", () => {
   // Borderless swaps the BrowserWindow, which reloads the page. That reload
   // keeps the same origin — appOrigin is set once per launch from the resolved

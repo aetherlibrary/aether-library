@@ -427,6 +427,23 @@ function swapWindow(frameless) {
   }
 }
 
+// Is the window ACTUALLY in `mode` right now?
+//
+// `currentWindowMode` is a record of what was last REQUESTED, which is not the
+// same thing. A request can fail to take: macOS native fullscreen is an
+// asynchronous window-manager transition that can be refused (notably for a
+// window that is not on screen yet), and a user can enter or leave fullscreen
+// outside Settings entirely — the green button, Ctrl+Cmd+F, Mission Control.
+// Either way the record and the window disagree, and only the window knows the
+// truth. Asking it is what makes the no-op guard below safe.
+function windowIsInMode(win, mode) {
+  if (!win || win.isDestroyed()) return false;
+  if (mode === "fullscreen") return win.isFullScreen();
+  // Both remaining modes are non-fullscreen; the frame state separates them.
+  if (win.isFullScreen()) return false;
+  return currentFrameless === needsFrameless(mode);
+}
+
 // The one place the mode changes. Remembers the outgoing windowed size,
 // swaps the window if the frame state has to change, applies geometry,
 // persists and tells the renderer so its cached value cannot drift.
@@ -449,9 +466,19 @@ function setWindowMode(mode) {
   // sent. Returning early leaves x/y AND width/height untouched, which is the
   // contract — geometry only ever moves when the user actually changes a
   // setting that requires it.
-  if (mode === currentWindowMode && needsFrameless(mode) === currentFrameless) return currentWindowMode;
-
+  //
+  // THE WINDOW HAS THE CASTING VOTE. Checking the record alone was not enough,
+  // and made Fullscreen inert on macOS: once a fullscreen request failed to
+  // take, the record still said "fullscreen", so every later attempt was
+  // skipped as redundant and the user had no way back through the UI. A skip
+  // is only correct when the window really is in the mode already, so
+  // windowIsInMode() is what actually authorises it — which also makes this
+  // self-healing after any desync, whatever caused it.
   const win = mainWindow;
+  if (mode === currentWindowMode && needsFrameless(mode) === currentFrameless && windowIsInMode(win, mode)) {
+    return currentWindowMode;
+  }
+
   // Capture the windowed size BEFORE anything changes, so returning to
   // Windowed later lands on the size the user actually had.
   if (currentWindowMode === "windowed" && mode !== "windowed" && win && !win.isDestroyed() && !win.isFullScreen()) {
@@ -658,6 +685,18 @@ function buildWindow({ frameless }) {
     // Re-asserted AFTER show: showing a window re-enters it into the z-order,
     // so requesting always-on-top beforehand can be undone by the show itself.
     applyAlwaysOnTop(win);
+    // Fullscreen is re-asserted after show for a different reason: macOS will
+    // not take a fullscreen request for a window that is not on screen yet, and
+    // every window here is built hidden (`show: false`, to avoid the white
+    // flash). The constructor's own `fullscreen` option covers a launch that
+    // starts fullscreen, but a window SWAPPED in for a mode change — Borderless
+    // to Fullscreen — is constructed while currentWindowMode is already
+    // "fullscreen" and would otherwise come up windowed, leaving the record and
+    // the window disagreeing. Costs nothing when the request already took: the
+    // isFullScreen() check short-circuits it.
+    if (currentWindowMode === "fullscreen" && !win.isDestroyed() && !win.isFullScreen()) {
+      win.setFullScreen(true);
+    }
   });
 
   // Leaving fullscreen by any route other than Settings (F11 below, or the
@@ -666,6 +705,24 @@ function buildWindow({ frameless }) {
   // launch would restore the wrong one.
   win.on("leave-full-screen", () => {
     if (currentWindowMode === "fullscreen") setWindowMode("windowed");
+  });
+
+  // The mirror of the above, and the reason it was missing mattered most on
+  // macOS: ENTERING fullscreen outside Settings is routine there — the green
+  // title-bar button, Ctrl+Cmd+F, a double-click on the title bar — while on
+  // Windows there is no equivalent affordance once the menu bar is removed.
+  // Without this the record still said "windowed" while the window was
+  // fullscreen, so Settings showed the wrong mode, and choosing Fullscreen
+  // there did nothing visible because the window was already in it.
+  //
+  // The state is synced directly rather than through setWindowMode(): the
+  // window has ALREADY made the transition, so re-running geometry for it
+  // would be re-applying a change that has happened.
+  win.on("enter-full-screen", () => {
+    if (currentWindowMode === "fullscreen") return;
+    currentWindowMode = "fullscreen";
+    writePrefs();
+    notifyRenderer();
   });
 
   wireWindow(win);
