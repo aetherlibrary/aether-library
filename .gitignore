@@ -35,8 +35,19 @@ npm-debug.log*
 
 # Build output / test artifacts (none produced today; ignored defensively)
 /dist/
-/build/
 /coverage/
+
+# build/ is electron-builder's buildResources directory. Its CONTENTS are
+# ignored rather than the directory itself — a negation cannot reach inside an
+# ignored DIRECTORY (same reason /data/* is written that way above) — because
+# one file in here is a build INPUT that has to travel with the repository.
+/build/*
+
+# The macOS Hardened Runtime entitlements. Without this file a mac build has
+# nothing to sign against, so it must be committed rather than treated as
+# build output: it is source, and it lives here only because that is where
+# electron-builder looks.
+!/build/entitlements.mac.plist
 
 # OS
 Thumbs.db

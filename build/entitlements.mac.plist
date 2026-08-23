@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  Aether Library — macOS Hardened Runtime entitlements.
+
+  THE SMALLEST SET THAT LETS ELECTRON RUN. Every entry here exists because the
+  Hardened Runtime forbids something Chromium's JavaScript engine does by
+  design; nothing grants access to user data, hardware, or the network beyond
+  what the app already does as a normal process.
+
+    allow-jit
+      V8 compiles JavaScript to machine code at runtime. The Hardened Runtime
+      blocks creating executable memory pages (MAP_JIT) without this, and the
+      renderer cannot start at all.
+
+    allow-unsigned-executable-memory
+      Chromium also writes into executable pages that carry no code signature.
+      Without this the process is killed the moment V8 tries.
+
+  DELIBERATELY ABSENT:
+    * com.apple.security.app-sandbox — this is a directly distributed DMG, not
+      a Mac App Store build. Sandboxing would break the user's own Vault
+      folder, which is the entire point of the product.
+    * com.apple.security.files.user-selected.read-write — only meaningful
+      under the sandbox above.
+    * com.apple.security.network.* — likewise sandbox-only. The app talks to
+      127.0.0.1 and to the AI providers as an ordinary unsandboxed process.
+    * com.apple.security.cs.disable-library-validation — not needed: there are
+      no native modules and no third-party dylibs to load.
+-->
+<plist version="1.0">
+<dict>
+  <key>com.apple.security.cs.allow-jit</key>
+  <true/>
+  <key>com.apple.security.cs.allow-unsigned-executable-memory</key>
+  <true/>
+</dict>
+</plist>

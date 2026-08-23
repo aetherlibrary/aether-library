@@ -656,15 +656,46 @@ function wireWindow(win) {
   });
 }
 
+// --------------------------------------------------------- application menu
+//
+// WINDOWS: no menu at all, exactly as before. Aether Library has no use for
+// File/Edit/View/Window there, and its accelerators (Ctrl+R reload, the
+// devtools toggle) are not behaviour a shipped desktop app should expose. The
+// native title bar is untouched — minimize, maximize/restore and close remain.
+//
+// macOS: a menu is NOT optional. The standard edit roles are what BIND the
+// system shortcuts, so with a null menu Cmd+C/V/X/A/Z do nothing at all — and
+// the very first thing a new user must do is paste an API key into AI Config.
+// Cmd+Q and Cmd+W would be dead too, leaving no keyboard way to quit.
+//
+// Built from ROLES rather than hand-written click handlers so the items get
+// their native labels, ordering, and localisation for free. Deliberately only
+// three menus: appMenu, editMenu and windowMenu. There is NO View menu, which
+// is what keeps Reload and Toggle Developer Tools off the shipped build —
+// matching what Windows already hides.
+function installApplicationMenu() {
+  if (process.platform !== "darwin") {
+    Menu.setApplicationMenu(null);
+    return;
+  }
+
+  Menu.setApplicationMenu(
+    Menu.buildFromTemplate([
+      // Cmd+Q, Hide, Services, About — all standard, all free with the role.
+      { role: "appMenu" },
+      // Cmd+C / V / X / A / Z / Shift+Z. The reason this function exists.
+      { role: "editMenu" },
+      // Cmd+W (close), Cmd+M (minimize), Zoom.
+      { role: "windowMenu" },
+    ])
+  );
+}
+
 // ------------------------------------------------------------------ start
 async function start() {
   const userData = app.getPath("userData");
 
-  // No File / Edit / View / Window menu. Aether Library has no use for it, and
-  // its accelerators (notably Ctrl+R reload and the devtools toggle) are not
-  // behaviour a shipped desktop app should expose. The NATIVE Windows title
-  // bar is untouched — minimize, maximize/restore and close all remain.
-  Menu.setApplicationMenu(null);
+  installApplicationMenu();
 
   // Desktop preferences live beside the rest of the user's data. Read BEFORE
   // the port is chosen: the remembered port is one of them, and reusing it is
@@ -758,7 +789,22 @@ if (!app.requestSingleInstanceLock()) {
   // when "no windows" is a momentary state rather than the user leaving.
   app.on("window-all-closed", () => {
     if (recreating) return;
+    // macOS: closing the last window is NOT quitting. Cmd+W leaves the app
+    // running in the Dock and Cmd+Q is what ends it, so quitting here would be
+    // the app disobeying the platform. Express keeps running in this process,
+    // which is what makes the Dock reopen below instant rather than a restart.
+    if (process.platform === "darwin") return;
     app.quit();
+  });
+
+  // macOS: clicking the Dock icon with no windows open reopens one. Only
+  // meaningful once start() has resolved — appOrigin is what a window loads,
+  // and before that there is nothing to show.
+  app.on("activate", () => {
+    if (process.platform !== "darwin") return;
+    if (!appOrigin || recreating) return;
+    if (BrowserWindow.getAllWindows().length > 0) return;
+    mainWindow = buildWindow({ frameless: currentFrameless });
   });
 
   app.whenReady().then(start).catch((err) => {

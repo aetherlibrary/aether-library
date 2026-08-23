@@ -58,6 +58,46 @@ win:
   # shortcuts and the Add/Remove Programs entry.
   icon: assets/app-icons/app_icon.ico
 
+# ------------------------------------------------------------------- macOS
+# APPLE SILICON ONLY, deliberately. arm64 is the whole target list: no x64 and
+# no universal build, so the artifact stays one architecture and one download.
+# An Intel Mac is not a supported target for this release.
+mac:
+  target:
+    - target: dmg
+      arch:
+        - arm64
+    - target: zip
+      arch:
+        - arm64
+  # The SAME bundle identity as everywhere else. appId above is reused as the
+  # macOS bundle identifier rather than inventing a second one, so the app has
+  # one identity across platforms and future signing/notarization has a stable
+  # subject.
+  #
+  # ICON: pointed at the 1024x1024 master PNG, not a committed .icns.
+  # electron-builder converts it during a mac build, which keeps one visual
+  # source of truth and avoids committing a generated binary that could drift
+  # from the master. (The Windows .ico is committed only because it must exist
+  # for Windows builds run on Windows, where no converter is available.)
+  icon: assets/app-icons/app_icon_master.png
+  category: public.app-category.productivity
+  # Required before Apple will notarize. Harmless on an unsigned local build —
+  # it only takes effect when a signing identity is actually present.
+  hardenedRuntime: true
+  # The Hardened Runtime rejects Electron's JIT without these; see
+  # build/entitlements.mac.plist for what each one is for.
+  entitlements: build/entitlements.mac.plist
+  entitlementsInherit: build/entitlements.mac.plist
+  # Skips Apple's own local assessment during the build. Gatekeeper still
+  # evaluates the shipped artifact on the user's machine; this only stops the
+  # build failing on a machine with no certificate.
+  gatekeeperAssess: false
+
+dmg:
+  # Produces exactly: Aether-Library-1.2.0-arm64.dmg
+  artifactName: Aether-Library-${version}-${arch}.dmg
+
 nsis:
   # A visible installer with a real install step, not a silent one-click drop.
   oneClick: false

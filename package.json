@@ -11,7 +11,9 @@
     "test": "node --test",
     "electron:dev": "electron .",
     "electron:pack": "electron-builder --win --x64 --dir",
-    "electron:build": "electron-builder --win --x64"
+    "electron:build": "electron-builder --win --x64",
+    "electron:pack:mac": "electron-builder --mac --arm64 --dir",
+    "electron:build:mac": "electron-builder --mac --arm64"
   },
   "engines": {
     "node": ">=20"

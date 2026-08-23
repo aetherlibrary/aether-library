@@ -298,6 +298,127 @@ test("packaging identity is stable and user data is never deleted on uninstall",
   assert.equal(pkg.main, "electron/main.js");
 });
 
+// ============================================================ macOS arm64
+//
+// Apple Silicon is a supported public target as of v1.2. These pin the parts
+// that are easy to break from Windows without noticing: the architecture list,
+// the shared identity, and the two platform behaviours macOS requires but
+// Windows does not.
+
+test("macOS targets Apple Silicon only — no x64, no universal", () => {
+  const mac = builder.slice(builder.indexOf("\nmac:"), builder.indexOf("\ndmg:"));
+  assert.ok(mac.length > 0, "a mac section exists");
+  assert.match(mac, /- target: dmg/);
+  assert.match(mac, /- arm64/);
+  // The whole point of the target choice: one architecture, one download.
+  assert.doesNotMatch(mac, /- x64/, "Intel macOS is not a supported target");
+  assert.doesNotMatch(mac, /universal/, "no universal binary");
+});
+
+test("Windows packaging is untouched by the macOS addition", () => {
+  const win = builder.slice(builder.indexOf("\nwin:"), builder.indexOf("\n# ---"));
+  assert.match(win, /- target: nsis/);
+  assert.match(win, /- x64/);
+  assert.match(win, /icon: assets\/app-icons\/app_icon\.ico/);
+  // Windows and macOS builds are separate commands; neither emits the other's
+  // artifacts as a side effect.
+  assert.equal(pkg.scripts["electron:pack"], "electron-builder --win --x64 --dir");
+  assert.equal(pkg.scripts["electron:build"], "electron-builder --win --x64");
+  assert.match(pkg.scripts["electron:build:mac"], /--mac/);
+  assert.match(pkg.scripts["electron:build:mac"], /--arm64/);
+  assert.doesNotMatch(pkg.scripts["electron:build:mac"], /--win|--x64|universal/);
+});
+
+test("one application identity across platforms, and the DMG is named for it", () => {
+  // appId doubles as the macOS bundle identifier — a second identity would
+  // break signing continuity and read as a different app to the OS.
+  assert.match(builder, /^appId: app\.aetherlibrary\.desktop$/m);
+  const macCount = (builder.match(/^appId:/gm) || []).length;
+  assert.equal(macCount, 1, "exactly one appId, shared by both platforms");
+  assert.match(builder, /artifactName: Aether-Library-\$\{version\}-\$\{arch\}\.dmg/);
+});
+
+test("the macOS icon comes from the existing master art, not a new asset", () => {
+  const mac = builder.slice(builder.indexOf("\nmac:"), builder.indexOf("\ndmg:"));
+  assert.match(mac, /icon: assets\/app-icons\/app_icon_master\.png/);
+});
+
+test("Hardened Runtime is configured with the minimum entitlements and no credentials", async () => {
+  const mac = builder.slice(builder.indexOf("\nmac:"), builder.indexOf("\ndmg:"));
+  assert.match(mac, /hardenedRuntime: true/);
+  assert.match(mac, /entitlements: build\/entitlements\.mac\.plist/);
+
+  const plist = await read("../build/entitlements.mac.plist");
+  assert.match(plist, /com\.apple\.security\.cs\.allow-jit/);
+  assert.match(plist, /com\.apple\.security\.cs\.allow-unsigned-executable-memory/);
+  // Nothing broader than Electron actually needs to run. Asserted against the
+  // DECLARATIONS only: the file's comment explains at length which entitlements
+  // are deliberately absent, and naming them is what a naive search trips over.
+  const declared = plist.replace(/<!--[\s\S]*?-->/g, "");
+  assert.doesNotMatch(declared, /app-sandbox/);
+  assert.doesNotMatch(declared, /disable-library-validation/);
+  assert.doesNotMatch(declared, /security\.network/);
+  // Exactly two entitlements, so a broad one cannot be slipped in later.
+  assert.equal((declared.match(/<key>/g) || []).length, 2);
+
+  // No signing credentials may ever live in the repo.
+  for (const secret of [/CSC_LINK/, /CSC_KEY_PASSWORD/, /APPLE_ID/, /APPLE_APP_SPECIFIC_PASSWORD/, /appleIdPassword/, /-----BEGIN/]) {
+    assert.doesNotMatch(builder, secret, "signing credentials must not be committed");
+    assert.doesNotMatch(plist, secret);
+  }
+});
+
+test("macOS gets the menu roles its keyboard shortcuts depend on; Windows still gets none", () => {
+  const code = codeOnly(main);
+  // Windows behaviour is unchanged: no menu at all.
+  assert.match(code, /if \(process\.platform !== "darwin"\) \{\s*Menu\.setApplicationMenu\(null\);/);
+  // macOS binds Cmd+C/V/X/A/Z, Cmd+Q, Cmd+W and Cmd+M through these roles.
+  // Without them a null menu leaves every one of those keys dead — including
+  // paste, which is how an API key gets into AI Config.
+  assert.match(code, /role: "appMenu"/);
+  assert.match(code, /role: "editMenu"/);
+  assert.match(code, /role: "windowMenu"/);
+  // Still no View menu, so Reload and Toggle Developer Tools stay off the
+  // shipped build exactly as they are on Windows.
+  assert.doesNotMatch(code, /role: "viewMenu"/);
+  assert.doesNotMatch(code, /toggleDevTools|forceReload/);
+});
+
+test("macOS window lifecycle: last window closed keeps running, Dock reopens", () => {
+  const code = codeOnly(main);
+  // Closing the last window must not quit on macOS...
+  assert.match(code, /if \(process\.platform === "darwin"\) return;\s*app\.quit\(\);/);
+  // ...and the Dock icon brings a window back.
+  assert.match(code, /app\.on\("activate"/);
+  assert.match(code, /BrowserWindow\.getAllWindows\(\)\.length > 0\) return;/);
+  // Windows still quits when the last window closes.
+  assert.match(code, /app\.on\("window-all-closed"/);
+});
+
+test("the local backend stays localhost-only and in-process on every platform", async () => {
+  const server = await read("../src/server.js");
+  assert.match(server, /app\.listen\(config\.port, "127\.0\.0\.1"/);
+  assert.doesNotMatch(server, /0\.0\.0\.0/);
+  // Still imported into this process — no child, no second Node runtime.
+  assert.match(main, /await import\("\.\.\/src\/server\.js"\)/);
+  assert.doesNotMatch(codeOnly(main), /child_process|spawn\(|execFile\(/);
+  // userData is resolved and exported BEFORE the server is imported, so the
+  // backend never falls back to a path inside the app bundle.
+  const startFn = main.slice(main.indexOf("async function start()"), main.indexOf('await import("../src/server.js")'));
+  assert.match(startFn, /app\.getPath\("userData"\)/);
+  assert.match(startFn, /process\.env\.ENV_FILE_PATH = path\.join\(userData/);
+  assert.match(startFn, /process\.env\.ARCHIVE_DIR = path\.join\(userData/);
+});
+
+test("no Windows-only shell assumption is baked into the desktop shell", () => {
+  const code = codeOnly(main);
+  for (const windowsism of [/powershell/i, /cmd\.exe/i, /explorer\.exe/i, /\.exe\b/, /[A-Z]:\\\\/, /\\\\\\\\/]) {
+    assert.doesNotMatch(code, windowsism, `desktop shell must not assume Windows: ${windowsism}`);
+  }
+  // External links go through Electron's own opener, never a shell command.
+  assert.match(code, /shell\.openExternal\(url\)/);
+});
+
 test("the packaged file whitelist still carries every runtime root", () => {
   for (const entry of ["electron/**/*", "src/**/*", "public/**/*", "assets/**/*", "config/**/*", "data/scene-layout.json", "package.json"]) {
     assert.ok(builder.includes(`- ${entry}`), `packaging is missing ${entry}`);
