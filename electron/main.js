@@ -95,9 +95,23 @@ let recreating = false;
 let currentFrameless = false;
 
 // Last known WINDOWED bounds, so leaving fullscreen/borderless returns the
-// window to the size it had rather than to the default. In-memory only —
-// persistent X/Y restoration is deliberately out of scope.
+// window to the place and size it had rather than to the default. In-memory
+// only — persistent X/Y restoration is deliberately out of scope.
+//
+// KEPT LIVE, not captured once. It used to be written a single time, from the
+// constructor's own geometry in buildWindow(), and never updated again — so it
+// permanently described where the window OPENED, not where the user had since
+// put it. Anything that re-applied it therefore dragged a hand-placed window
+// back to its launch rectangle. See rememberWindowedBounds().
 let windowedBounds = null;
+
+// True while THIS module is deliberately moving the window. The move/resize
+// events such a placement causes are the application placing the window, not
+// the user placing it, and recording them as windowed bounds would be wrong in
+// the one case that matters: leaving fullscreen emits resize BEFORE the
+// leave-full-screen callback runs, so tracking it would overwrite the very
+// rectangle that callback is about to restore.
+let placingWindow = false;
 
 // Last useful BORDERLESS WINDOWED bounds. Unlike windowedBounds this one is
 // persisted: a borderless window is a placed utility window (think PureRef),
@@ -191,6 +205,21 @@ function rememberBorderlessBounds(win) {
   if (same) return; // nothing changed — no write
   borderlessBounds = next;
   writePrefs();
+}
+
+// Keeps `windowedBounds` describing where the FRAMED window actually is, for
+// as long as it is the windowed one.
+//
+// Unlike rememberBorderlessBounds this writes nothing to disk and needs no
+// debounce: it is a variable assignment, so running it on every geometry event
+// costs nothing and there is no write to collapse. Windowed placement stays
+// in-memory by design — only Borderless persists across launches.
+function rememberWindowedBounds(win) {
+  if (placingWindow) return; // an application placement, not the user's
+  if (currentWindowMode !== "windowed") return;
+  if (!win || win.isDestroyed() || win.isFullScreen() || win.isMinimized()) return;
+  const next = validBounds(win.getBounds());
+  if (next) windowedBounds = next;
 }
 
 // Reads BOTH preferences, each validated independently so one bad value never
@@ -297,18 +326,32 @@ function setAlwaysOnTop(enabled) {
 // Borderless is the only mode that needs a frameless window.
 const needsFrameless = (mode) => mode === "borderless";
 
+// Released on the NEXT TICK, never synchronously: setBounds' own move/resize
+// events are delivered asynchronously, so clearing the flag inline would let
+// the tail of a placement through as if the user had made it.
+function endPlacement() {
+  setTimeout(() => {
+    placingWindow = false;
+  }, 0);
+}
+
 // Positions/sizes an EXISTING window for a mode. Frame state is not its
 // business — that is decided at construction, see swapWindow below.
 function applyWindowGeometry(win, mode) {
   if (!win || win.isDestroyed()) return;
+  placingWindow = true;
 
   if (mode === "fullscreen") {
     if (!win.isFullScreen()) win.setFullScreen(true);
+    endPlacement();
     return;
   }
 
   const place = () => {
-    if (win.isDestroyed()) return;
+    if (win.isDestroyed()) {
+      endPlacement();
+      return;
+    }
     if (mode === "borderless") {
       // BORDERLESS WINDOWED: an ordinary, placed, resizable desktop window
       // that simply has no frame — not a work-area fill and not fullscreen.
@@ -319,11 +362,13 @@ function applyWindowGeometry(win, mode) {
       // rather than jumping) -> leave the constructor's default alone.
       const target = clampToVisibleDisplay(borderlessBounds) || validBounds(windowedBounds);
       if (target) win.setBounds(target);
+      endPlacement();
       return;
     }
     // windowed — restore the remembered size if we have one. Borderless bounds
     // are deliberately NOT a fallback here: they describe a different window.
     if (windowedBounds) win.setBounds(windowedBounds);
+    endPlacement();
   };
 
   if (win.isFullScreen()) {
@@ -387,6 +432,24 @@ function swapWindow(frameless) {
 // persists and tells the renderer so its cached value cannot drift.
 function setWindowMode(mode) {
   if (!WINDOW_MODES.includes(mode)) return currentWindowMode;
+
+  // A REQUEST FOR THE MODE THE WINDOW IS ALREADY IN CHANGES NOTHING.
+  //
+  // Saving Settings always re-sends Window Mode, changed or not — see
+  // saveSettings() in public/app.js, which calls shell.setWindowMode() on every
+  // successful save because Window Mode is a shell setting that never travels
+  // in the /api/settings payload. That made an unrelated save (a theme, an API
+  // key) run the full mode change, and applyWindowGeometry()'s windowed branch
+  // then put the window back at `windowedBounds`, moving a window the user had
+  // deliberately dragged elsewhere. Reported on macOS; the code is shared, so
+  // Windows did exactly the same thing.
+  //
+  // There is genuinely nothing to do here: the persisted mode already equals
+  // the requested one, and the renderer's cached copy is the value it just
+  // sent. Returning early leaves x/y AND width/height untouched, which is the
+  // contract — geometry only ever moves when the user actually changes a
+  // setting that requires it.
+  if (mode === currentWindowMode && needsFrameless(mode) === currentFrameless) return currentWindowMode;
 
   const win = mainWindow;
   // Capture the windowed size BEFORE anything changes, so returning to
@@ -560,9 +623,18 @@ function buildWindow({ frameless }) {
     },
   });
 
-  // Windowed bounds are only meaningful for a framed window, and only before
-  // the user has resized.
+  // Windowed bounds are only meaningful for a framed window. Seed them from
+  // the constructor's geometry so there is something to return to before the
+  // user has touched anything...
   if (!frameless && !windowedBounds) windowedBounds = win.getBounds();
+  // ...and then keep them CURRENT. Without this the seed above was the only
+  // value ever recorded, so `windowedBounds` described the launch rectangle
+  // forever and re-applying it moved a hand-placed window back to it.
+  if (!frameless) {
+    for (const event of ["move", "moved", "resize", "resized"]) {
+      win.on(event, () => rememberWindowedBounds(win));
+    }
+  }
 
   // Borderless placement is remembered from the window's own geometry events.
   // All four feed one debounce (see BORDERLESS_SAVE_DEBOUNCE_MS): `moved` and

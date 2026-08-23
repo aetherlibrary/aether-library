@@ -1193,7 +1193,7 @@ function localizeStaticUI() {
   setText("council-precheck-error-title", "councilCheckErrorTitle");
   setText("council-precheck-error-footer", "councilCheckErrorFooter");
   setText("council-precheck-retry", "councilCheckRetry");
-  setText("council-precheck-open-settings", "councilCheckOpenSettings");
+  setText("council-precheck-open-settings", "councilCheckOpenAiConfig");
   // Settings → Council Model Check section
   setText("council-check-settings-title", "councilCheckTitle");
   setText("council-check-settings-auto-text", "councilCheckSettingsAutoLabel");
@@ -5635,9 +5635,10 @@ const EN_FALLBACK = {
   statusTabCompleted: "Completed", statusTabFailed: "Failed",
   modeCouncil: "Council", modeMentor: "Mentor", modeLabel: "Mode",
   needScholar: "Enable at least one Scholar (needs an API key).",
-  noProviderConfigured: "No provider configured yet — open Settings to add API keys.",
+  noProviderConfigured: "No provider configured yet — open AI Config to add API keys.",
   provider: "Provider",
   model: "Model", defaultReplyLanguage: "Default Reply Language", apiProviders: "API Providers",
+  matchQuestionLanguage: "Match Question Language",
   scholarAssignment: "Scholar Assignment", apiKey: "API key", enabled: "Enabled",
   status: "Status", configured: "Configured", notConfigured: "Not configured",
   keyBlankKeeps: "configured — blank keeps it", keyNotSet: "not set",
@@ -5647,8 +5648,8 @@ const EN_FALLBACK = {
   aiSetupHintDismiss: "Dismiss",
   aiSetupTitle: "AI Provider Required",
   aiSetupBody1: "No AI providers have been configured yet.",
-  aiSetupBody2: "Connect your first AI provider in Settings to begin conversations.",
-  aiSetupOpenSettings: "Open Settings",
+  aiSetupBody2: "Connect your first AI provider in AI Config to begin conversations.",
+  aiSetupOpenSettings: "Open AI Config",
   aiSetupLater: "Later",
   perplexitySonarNote: "Currently supports the Perplexity Sonar model family.",
   refreshing: "Refreshing…", statusConnected: "Connected",
@@ -6125,7 +6126,14 @@ function renderGeneral() {
   // Default Reply Language — an application-wide AI setting that lives in
   // General alongside the other preferences, no longer under Grand Sage.
   sx.lang = document.getElementById("gen-reply-lang");
-  sx.lang.value = currentConfig.defaultReplyLanguage || "en";
+  // Only the "match" option is localized: the language options are labelled
+  // with their own native names ("English", "繁體中文") in every interface
+  // language, exactly like the Interface Language dropdown above.
+  sx.lang.querySelector('option[value="match"]').textContent = str("matchQuestionLanguage");
+  // The fallback is MATCH, matching the server's own fresh-install default —
+  // an "en" here would show English to a user whose replies actually follow
+  // the question, which is a setting the dialog would then write on save.
+  sx.lang.value = currentConfig.defaultReplyLanguage || "match";
 
   sx.theme = document.getElementById("gen-theme");
   sx.theme.querySelector('option[value="dark"]').textContent = str("themeDark");
@@ -13213,7 +13221,17 @@ els.councilPrecheckError.retry.addEventListener("click", async () => {
     btn.textContent = original;
   }
 });
-els.councilPrecheckError.openSettings.addEventListener("click", openSettings);
+// Provider recovery goes to AI CONFIG, not Settings. Every reason the
+// pre-check block can appear — no API key, provider disabled, model
+// unavailable, auth/rate-limit — is repaired in AI Config; providers left
+// Settings when the two dialogs were split. Same opener as every other AI
+// Config entry point (the nav button, the first-run AI Setup dialog), so
+// there is one implementation, not a second one for recovery.
+//
+// Wrapped rather than passed by reference: openSettings' first parameter is
+// the target, and handing it straight to addEventListener passed the click
+// Event as that target instead.
+els.councilPrecheckError.openSettings.addEventListener("click", () => openSettings("ai-config"));
 els.settings.councilManualCheckBtn.addEventListener("click", runManualCouncilCheck);
 // Product Status (Batch A) — informational only; opening it renders from
 // already-fetched config and never contacts a provider.

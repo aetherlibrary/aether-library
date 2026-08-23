@@ -31,7 +31,9 @@ test("Council Model Pre-check keys specifically are present and non-empty in bot
     "councilCheckSkip",
     "councilCheckChecking",
     "councilCheckRetry",
-    "councilCheckOpenSettings",
+    // Renamed with the recovery target itself: this button opens AI Config,
+    // where providers, keys and models actually live.
+    "councilCheckOpenAiConfig",
     "councilCheckSettingsAutoLabel",
     "councilCheckSettingsDesc",
     "councilCheckSettingsCost",

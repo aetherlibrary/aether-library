@@ -5,9 +5,9 @@
 import fs from "node:fs";
 import { config, envFilePath, reloadConfig, slotNumber, PROVIDER_DEFS, SUPPORTED_THEMES } from "../config.js";
 import {
-  IDENTITY_PACKS,
   SCHOLAR_SLOTS,
   identityFor,
+  replyLanguageValues,
   supportedInterfaceLanguages,
 } from "../localization.js";
 
@@ -61,8 +61,11 @@ export function saveSettings(input = {}) {
   if (updates.JUDGE_PROVIDER && !config.providers[updates.JUDGE_PROVIDER]) {
     throw new Error(`judgeProvider must be one of: ${Object.keys(config.providers).join(", ")}`);
   }
-  if (updates.DEFAULT_REPLY_LANGUAGE && !IDENTITY_PACKS[updates.DEFAULT_REPLY_LANGUAGE]) {
-    throw new Error(`defaultReplyLanguage must be one of: ${Object.keys(IDENTITY_PACKS).join(", ")}`);
+  // Validated against replyLanguageValues(), not the identity packs: "match"
+  // is a policy rather than a locale, so it has no pack — checking packs alone
+  // would reject the option the dropdown offers first.
+  if (updates.DEFAULT_REPLY_LANGUAGE && !replyLanguageValues().includes(updates.DEFAULT_REPLY_LANGUAGE)) {
+    throw new Error(`defaultReplyLanguage must be one of: ${replyLanguageValues().join(", ")}`);
   }
   if (updates.INTERFACE_LANGUAGE && !supportedInterfaceLanguages().includes(updates.INTERFACE_LANGUAGE)) {
     throw new Error(`interfaceLanguage must be one of: ${supportedInterfaceLanguages().join(", ")}`);

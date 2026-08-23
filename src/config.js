@@ -278,13 +278,26 @@ export function reloadConfig() {
   // .env.local keeps its configured value across this rename; the new key
   // is the only one ever written (see settings.js FIELD_TO_ENV).
   //
-  // The final fallback is DEFAULT_REPLY_LANGUAGE ("en"), NOT DEFAULT_LANGUAGE
-  // ("zh-TW"). The latter is the locale/identity fallback and answers a
-  // different question; sharing it here meant a fresh install instructed every
-  // Scholar and the Grand Sage to answer in Traditional Chinese before the
-  // user had chosen anything. Only this last step changed — a saved
-  // DEFAULT_REPLY_LANGUAGE, and the legacy DISPLAY_LANGUAGE, still win, so an
-  // existing install keeps exactly the language it had.
+  // The final fallback is DEFAULT_REPLY_LANGUAGE ("match" — follow the
+  // question), NOT DEFAULT_LANGUAGE ("zh-TW"). The latter is the
+  // locale/identity fallback and answers a different question; sharing it here
+  // meant a fresh install instructed every Scholar and the Grand Sage to answer
+  // in Traditional Chinese before the user had chosen anything.
+  //
+  // MIGRATION, precisely. Absence is what this three-tier read distinguishes,
+  // and absence is the ONLY thing that becomes Match. A saved "en" stays "en"
+  // and a saved "zh-TW" stays "zh-TW" — an explicit preference is never
+  // rewritten. The honest limit of that: the frontend has always sent
+  // defaultReplyLanguage on EVERY settings save, so a user who saved any
+  // unrelated setting (a theme, an API key) already has the then-default
+  // written to .env.local. On disk that is indistinguishable from a deliberate
+  // choice, so they keep the language they have rather than being moved to
+  // Match. Keeping a value the user has been living with is the safe side of an
+  // ambiguity the persisted data genuinely cannot resolve.
+  //
+  // Only this last step changed — a saved DEFAULT_REPLY_LANGUAGE, and the
+  // legacy DISPLAY_LANGUAGE, still win, so an existing install keeps exactly
+  // the language it had.
   config.defaultReplyLanguage = env("DEFAULT_REPLY_LANGUAGE", env("DISPLAY_LANGUAGE", DEFAULT_REPLY_LANGUAGE));
   // Fixed Scholar slots #1–#3: which provider (and optionally which model)
   // answers as each character. Read the raw values from the environment, then

@@ -54,6 +54,11 @@ export default {
     provider: "Provider",
     model: "Model",
     defaultReplyLanguage: "Default Reply Language",
+    // The FIRST option, and the default until the user picks a language: the
+    // reply follows whatever language the question was asked in. Named for
+    // what it does rather than called "Auto", which says nothing about what
+    // is being matched.
+    matchQuestionLanguage: "Match Question Language",
     apiProviders: "API Providers",
     scholarAssignment: "Scholar Assignment",
     apiKey: "API key",
@@ -333,7 +338,7 @@ export default {
     close: "Close",
     attachmentChipLabel: "Preview attachment {name}",
     attachmentNoPreview: "This file was included as Session context. No preview is available for this record.",
-    noProviderConfigured: "No provider configured yet — open Settings to add API keys.",
+    noProviderConfigured: "No provider configured yet — open AI Config to add API keys.",
     needScholar: "Enable at least one Scholar (needs an API key).",
 
     // -------------------------------------------------- scholar picker / hover
@@ -341,8 +346,8 @@ export default {
     chipNoKey: "no key",
     chipStatusReady: "Ready",
     chipStatusNoKey: "No API key",
-    chipTitleDisabled: "This Scholar's provider is disabled — enable it in Settings.",
-    chipTitleNoKey: "No API key for this slot's provider — configure it in Settings.",
+    chipTitleDisabled: "This Scholar's provider is disabled — enable it in AI Config.",
+    chipTitleNoKey: "No API key for this slot's provider — configure it in AI Config.",
     specialty: "Specialty",
     scholarSpecialties: {
       1: "Systems, structure, planning, and strategic reasoning",
@@ -439,7 +444,13 @@ export default {
     councilCheckSkip: "Start Without Checking",
     councilCheckChecking: "Checking…",
     councilCheckRetry: "Retry Check",
-    councilCheckOpenSettings: "Open Settings",
+    // The Council pre-check fails for exactly one class of reason — a missing
+    // key, a disabled provider, an unavailable model, a rate limit — and every
+    // one of those is repaired in AI Config, not in Settings. It said "Open
+    // Settings" and opened Settings, which is where providers USED to live
+    // before the two dialogs were split; a user following it landed in a
+    // dialog with no provider fields in it at all.
+    councilCheckOpenAiConfig: "Open AI Config",
     // Settings → Council Model Check (wording distinct from the dialog's own
     // checkbox label above, per spec §6).
     councilCheckSettingsAutoLabel: "Automatically perform a minimal API check before starting Council sessions",

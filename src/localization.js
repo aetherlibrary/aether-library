@@ -32,7 +32,37 @@ export const DEFAULT_LANGUAGE = "zh-TW";
 // different questions, and sharing one constant meant a brand-new user was
 // told the Scholars must answer in Traditional Chinese before they had chosen
 // anything. A saved preference always wins over this (see src/config.js).
-export const DEFAULT_REPLY_LANGUAGE = "en";
+// "Match Question Language" — the first option in Settings → General →
+// Default Reply Language, and the value that setting holds when the user wants
+// replies to follow whatever language they asked in.
+//
+// WHY A SENTINEL RATHER THAN AN ABSENT VALUE. saveSettings() treats a blank
+// field as "keep what you had" (the `if (!trimmed) continue;` in
+// services/settings.js), so an empty string cannot express a CHOICE — it
+// expresses silence. Match is a real, deliberate selection a user can make and
+// re-select, so it needs a real value. It is deliberately NOT a locale id: it
+// names a policy, not a language, and must never resolve to an identity pack
+// or a response-language name.
+export const MATCH_QUESTION_LANGUAGE = "match";
+
+export function isMatchQuestionLanguage(value) {
+  return value === MATCH_QUESTION_LANGUAGE;
+}
+
+// Every value Default Reply Language may hold: the match policy first, then
+// one entry per locale. This is the validation whitelist AND the order the
+// Settings dropdown renders.
+export function replyLanguageValues() {
+  return [MATCH_QUESTION_LANGUAGE, ...Object.keys(LOCALES)];
+}
+
+// It is MATCH rather than a fixed language. Pinning a fresh install to any one
+// language is a guess about a user nobody has asked yet: an English default
+// answered a Chinese question in English, and a Chinese default answered an
+// English question in Chinese. Following the question is the only behaviour
+// that is right before a preference exists — and it is still only a default,
+// replaced the moment the user picks a language.
+export const DEFAULT_REPLY_LANGUAGE = MATCH_QUESTION_LANGUAGE;
 
 export const SCHOLAR_SLOTS = [1, 2, 3];
 
@@ -65,6 +95,12 @@ export const RESPONSE_LANGUAGE_NAMES = {
 };
 
 export function responseLanguageName(language) {
+  // `match` names a policy, not a language, and there is no name to give it.
+  // Guarded explicitly because the fallback below would otherwise answer
+  // "Traditional Chinese" — silently turning "follow the question" into a
+  // fixed Chinese instruction. Callers must branch before reaching here;
+  // defaultReplyLanguageRule() does.
+  if (isMatchQuestionLanguage(language)) return null;
   return RESPONSE_LANGUAGE_NAMES[language] || RESPONSE_LANGUAGE_NAMES[DEFAULT_LANGUAGE];
 }
 
@@ -79,11 +115,37 @@ export function responseLanguageName(language) {
 //
 // `subject` names what is being written ("answer", "ruling", "reply") so
 // each prompt reads naturally without forking the policy itself.
+// TWO CONTRACTS, ONE FUNCTION. Which one is emitted depends only on the
+// setting, never on the provider: OpenAI, Anthropic, Google, xAI, Perplexity
+// and DeepSeek all receive exactly these lines.
+//
+// MATCH: one neutral line naming NO language, so nothing here can bias a reply
+// towards English or Chinese. An instruction is emitted rather than nothing at
+// all because the Grand Sage does not read the question directly — it rules on
+// a record of Scholar answers — and because the surrounding prompts already
+// refer to "the required language"; leaving that undefined invited each model
+// to invent its own policy.
+//
+// EXPLICIT: the observed failure was a Chinese question answered in Chinese
+// while the setting said English. The instruction was present and said
+// "mandatory", so the fix is not more emphasis but closing the loophole the
+// model walked through: it read a question ASKED in Chinese as a request TO
+// REPLY in Chinese, which the Override line invited. So the rule now (1) names
+// that misreading and rejects it outright, and (2) narrows Override to an
+// explicit instruction in the user's current message — exactly the priority
+// the product wants, since a direct instruction still outranks a standing
+// default.
 export function defaultReplyLanguageRule(language, subject = "response") {
+  if (isMatchQuestionLanguage(language)) {
+    return [
+      `LANGUAGE: write your entire ${subject} in the same language the user's current question is written in. If the user explicitly asks for a different language, obey that request instead, for the whole ${subject}.`,
+    ];
+  }
   const name = responseLanguageName(language);
   return [
     `LANGUAGE (mandatory): write your entire ${subject} in ${name}. This is the application's configured Default Reply Language — it is independent of the language of the question and of any interface-language setting.`,
-    `Override: if the user explicitly asks for a specific language (e.g. "answer in Japanese", "請用中文回答"), obey that request instead, for the whole ${subject}. That override applies only to the request that asked for it.`,
+    `The user asking in another language is NOT a request to answer in that language: if the question is written in a different language, still write the whole ${subject} in ${name}, and do not mirror the question's language.`,
+    `Override: only an explicit instruction in the user's current message (e.g. "answer in Japanese", "請用中文回答") changes this. Obey such an instruction instead, for the whole ${subject}. It applies only to the message that asked for it.`,
   ];
 }
 
@@ -300,6 +362,13 @@ export function formatPersonaName(personaId, { interfaceLanguage, replyLanguage 
   if (override) return override;
   const primary = personaName(personaId, interfaceLanguage);
   if (!primary) return "";
+  // MATCH has no second name to give. The bilingual form exists for when the
+  // reply language DIFFERS from the interface language, and "follow the
+  // question" is not a language to differ from. Without this the name would
+  // resolve through personaName()'s final English fallback, so a zh-TW
+  // interface in Match mode read "謀者（Architect）" — an English name added
+  // for a reply language nobody selected.
+  if (isMatchQuestionLanguage(replyLanguage)) return primary;
   const secondary = personaName(personaId, replyLanguage);
   if (!secondary || secondary === primary) return primary;
   const [open, close] = parenthesesFor(normalizeLanguageId(interfaceLanguage) || interfaceLanguage);

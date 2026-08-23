@@ -391,7 +391,10 @@
               <div class="session-error-message" id="council-precheck-error-footer">No Council responses were generated.</div>
               <div class="dialog-buttons council-precheck-error-actions">
                 <button type="button" id="council-precheck-retry">Retry Check</button>
-                <button type="button" id="council-precheck-open-settings">Open Settings</button>
+                <!-- Opens AI CONFIG, not Settings: every reason this block can
+                     appear (no API key, provider disabled, model unavailable,
+                     auth/rate-limit) is repaired there. -->
+                <button type="button" id="council-precheck-open-settings">Open AI Config</button>
               </div>
             </div>
             <div class="session-summary" id="session-summary" hidden>
@@ -617,6 +620,13 @@
                and never affects AI output. -->
           <label id="gen-reply-lang-label" class="assign-field">Default Reply Language
             <select name="defaultReplyLanguage" id="gen-reply-lang">
+              <!-- First, and the default for anyone who has never chosen: the
+                   reply follows whatever language the question was asked in.
+                   Unlike the two below — each labelled with its own NATIVE
+                   name, which is language-independent — this one is a policy,
+                   so its label is localized into the interface language by
+                   renderGeneral(). -->
+              <option value="match">Match Question Language</option>
               <option value="en">English</option>
               <option value="zh-TW">繁體中文</option>
             </select>

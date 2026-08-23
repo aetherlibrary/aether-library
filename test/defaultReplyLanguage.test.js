@@ -10,14 +10,20 @@
 // and no frontend default could correct it: the server resolves this value
 // before the browser ever sees it, so publicConfig() already carried "zh-TW".
 //
-// The fix separated the constants (DEFAULT_REPLY_LANGUAGE = "en") and changed
-// ONLY the last step of the chain. The priority order is the contract:
+// The fix separated the constants and changed ONLY the last step of the chain.
+// That last step is now MATCH — follow the question — because pinning a fresh
+// install to any one language is a guess about a user nobody has asked yet.
+// The priority order is the contract:
 //
-//   DEFAULT_REPLY_LANGUAGE (saved)  >  DISPLAY_LANGUAGE (legacy)  >  "en"
+//   DEFAULT_REPLY_LANGUAGE (saved)  >  DISPLAY_LANGUAGE (legacy)  >  "match"
 //
-// so an existing install keeps exactly the language it had. Both halves are
-// asserted below — a fix that reset saved preferences would be worse than the
-// bug it replaced.
+// so an existing install keeps exactly the language it had, and only genuine
+// ABSENCE resolves to Match. Both halves are asserted below — a change that
+// reset saved preferences would be worse than the bug it replaced.
+//
+// Broader behaviour (the prompt contract, the dropdown, Settings validation)
+// lives in replyLanguageContract.test.js and replyLanguageDefault.test.js;
+// what is unique here is publicConfig() — the value the FRONTEND receives.
 //
 // Runs against an isolated temp .env.local (via ENV_FILE_PATH), like
 // councilSettings.test.js, so it never touches the real project .env.local.
@@ -73,8 +79,10 @@ beforeEach(async () => {
 test("the two defaults are separate constants answering separate questions", () => {
   // Locale/identity fallback — unchanged, and still Traditional Chinese.
   assert.equal(localization.DEFAULT_LANGUAGE, "zh-TW");
-  // AI reply default on a fresh install.
-  assert.equal(localization.DEFAULT_REPLY_LANGUAGE, "en");
+  // AI reply default on a fresh install: follow the question rather than
+  // guessing a language for a user nobody has asked yet.
+  assert.equal(localization.DEFAULT_REPLY_LANGUAGE, localization.MATCH_QUESTION_LANGUAGE);
+  assert.equal(localization.MATCH_QUESTION_LANGUAGE, "match");
   assert.notEqual(
     localization.DEFAULT_LANGUAGE,
     localization.DEFAULT_REPLY_LANGUAGE,
@@ -84,16 +92,17 @@ test("the two defaults are separate constants answering separate questions", () 
 
 // -------------------------------------------------------------- fresh install
 
-test("a fresh install defaults the reply language to English", async () => {
+test("a fresh install defaults the reply language to Match", async () => {
   // Nothing saved: no DEFAULT_REPLY_LANGUAGE, no legacy DISPLAY_LANGUAGE.
-  assert.equal(config.config.defaultReplyLanguage, "en");
+  assert.equal(config.config.defaultReplyLanguage, "match");
 });
 
-test("the value the frontend receives is English too, not just the internal config", async () => {
+test("the value the frontend receives is Match too, not just the internal config", async () => {
   // publicConfig() is what /api/config serves, and it is resolved server-side
   // BEFORE the browser can apply any default of its own — this is the surface
-  // that actually decided the old behaviour.
-  assert.equal(config.publicConfig().defaultReplyLanguage, "en");
+  // that actually decides the behaviour, and the one renderGeneral() reads to
+  // pick the selected option.
+  assert.equal(config.publicConfig().defaultReplyLanguage, "match");
 });
 
 // ------------------------------------------------------- existing installs
@@ -130,5 +139,5 @@ test("the reply language is independent of the interface language", async () => 
   // configured separately and always have been.
   await writeEnv("INTERFACE_LANGUAGE=zh-TW\n");
   assert.equal(config.config.interfaceLanguage, "zh-TW");
-  assert.equal(config.config.defaultReplyLanguage, "en");
+  assert.equal(config.config.defaultReplyLanguage, "match");
 });

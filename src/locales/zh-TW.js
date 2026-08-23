@@ -41,6 +41,7 @@ export default {
     provider: "供應商",
     model: "模型",
     defaultReplyLanguage: "預設回覆語言",
+    matchQuestionLanguage: "與提問相同語言",
     apiProviders: "API 供應商",
     scholarAssignment: "學者指派",
     apiKey: "API 金鑰",
@@ -250,7 +251,7 @@ export default {
     close: "關閉",
     attachmentChipLabel: "預覽附件 {name}",
     attachmentNoPreview: "此檔案已作為 Session 內容提供。此紀錄沒有可顯示的預覽。",
-    noProviderConfigured: "尚未設定任何供應商 — 請開啟「設定」加入 API 金鑰。",
+    noProviderConfigured: "尚未設定任何供應商 — 請開啟「AI 配置」加入 API 金鑰。",
     needScholar: "請至少啟用一位學者（需要 API 金鑰）。",
 
     // -------------------------------------------------- scholar picker / hover
@@ -258,8 +259,8 @@ export default {
     chipNoKey: "未設金鑰",
     chipStatusReady: "就緒",
     chipStatusNoKey: "沒有 API 金鑰",
-    chipTitleDisabled: "這位學者的供應商已停用 — 請在「設定」中啟用。",
-    chipTitleNoKey: "此欄位的供應商沒有 API 金鑰 — 請在「設定」中設定。",
+    chipTitleDisabled: "這位學者的供應商已停用 — 請在「AI 配置」中啟用。",
+    chipTitleNoKey: "此欄位的供應商沒有 API 金鑰 — 請在「AI 配置」中設定。",
     specialty: "專長",
     scholarSpecialties: {
       1: "系統、架構、規劃與策略推理",
@@ -322,7 +323,7 @@ export default {
     councilCheckSkip: "不檢查，直接開始",
     councilCheckChecking: "檢查中…",
     councilCheckRetry: "重新檢查",
-    councilCheckOpenSettings: "開啟設定",
+    councilCheckOpenAiConfig: "開啟 AI 配置",
     councilCheckSettingsAutoLabel: "在啟動智囊團會談前自動執行最小 API 檢查",
     councilCheckSettingsDesc: "有助於在產生回應前偵測模型可用性、API 存取權限、身分驗證與帳務問題。每次檢查會送出一個最小的 API 請求，可能產生少量費用。",
     councilCheckSettingsCost: "預估費用：通常每次檢查 < $0.01。",
