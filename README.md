@@ -4,8 +4,8 @@ English | [繁體中文](README.zh-TW.md)
 
 Aether Library is a multi-AI workspace where different AI providers collaborate to answer your questions together. Compare perspectives from multiple AI Scholars, synthesize insights with a Grand Sage, and preserve your knowledge in a personal Vault stored on your device.
 
-Your API keys, your Vault and your discussion history stay on your own
-machine. There is no account and no Aether Library server.
+Your API keys, Vault, and discussion history are stored on your own device. 
+Aether Library is designed with a local-first approach, keeping you in control of your personal data and knowledge base.
 
 ![Aether Library — the Classic Library](docs/assets/aether-library-classic.png)
 
