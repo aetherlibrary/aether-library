@@ -1,5 +1,7 @@
 # Aether Library
 
+English | [繁體中文](README.zh-TW.md)
+
 Aether Library is a multi-AI workspace where different AI providers collaborate to answer your questions together. Compare perspectives from multiple AI Scholars, synthesize insights with a Grand Sage, and preserve your knowledge in a personal Vault stored on your device.
 
 Your API keys, your Vault and your discussion history stay on your own
@@ -36,6 +38,7 @@ the Grand Sage, independent of that character's identity. Currently supported:
 | OpenAI / GPT | |
 | Anthropic / Claude | |
 | Google / Gemini | |
+| xAI / Grok | |
 | Perplexity / Sonar | Sonar API |
 | DeepSeek | |
 
@@ -64,18 +67,26 @@ from the interface language.
 
 ## Getting Started
 
-### Windows Desktop App — recommended
+### Desktop App — recommended
 
-1. Download the installer from the
+1. Download the build for your platform from the
    [latest release](https://github.com/aetherlibrary/aether-library/releases/latest).
 2. Run it, then launch **Aether Library** like any other application.
 
-Windows 10/11 (x64). Nothing else to install — no Node.js, no terminal.
+| Platform | Download |
+| --- | --- |
+| Windows 10/11 (x64) | Installer |
+| macOS on Apple Silicon (arm64) | DMG |
+
+Nothing else to install — no Node.js, no terminal.
+
+The macOS build is not code-signed or notarized yet, so macOS blocks it on
+first launch. Open it once from Finder with right-click → **Open**, and it
+starts normally from then on.
 
 ### Run from Source
 
-For macOS and Linux, or if you would rather run the code directly. A packaged
-macOS build is not available yet.
+For Linux, for an Intel Mac, or if you would rather run the code directly.
 
 Requires **Node.js 20 or newer**. There is no build step.
 
@@ -161,13 +172,15 @@ docs/           technical documentation
 
 ## Status
 
-Aether Library is at **v1.2.0**. The core loop — configure providers, ask
-through Aetherom in Council or Mentor mode, save to your Vault, reopen from
-Archives — is complete and in daily use.
+Aether Library is at **v1.2.0**, released for Windows (x64) and macOS on Apple
+Silicon (arm64). The core loop — configure providers, ask through Aetherom in
+Council or Mentor mode, save to your Vault, reopen from Archives — is complete
+and in daily use.
 
-Not yet available: a packaged macOS build, additional Scenes beyond the
-Classic Library, and further languages. See [CHANGELOG.md](CHANGELOG.md) for
-release history and [ROADMAP.md](ROADMAP.md) for what is planned.
+Not yet available: code signing and notarization for the macOS build, Intel Mac
+builds, additional Scenes beyond the Classic Library, and further languages.
+See [CHANGELOG.md](CHANGELOG.md) for release history and
+[ROADMAP.md](ROADMAP.md) for what is planned.
 
 ## Links
 
