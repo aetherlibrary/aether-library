@@ -124,26 +124,24 @@ anywhere except to the provider you are calling.
 
 ## Vault & Privacy
 
-Aether Library is local-first, and it is worth being precise about what that
-does and does not mean.
+Aether Library is designed to be local-first. Your knowledge base, saved discussions, and 
+settings remain on your own computer. Aether Library does not require an account and does 
+not operate a cloud server that stores or relays your AI conversations.
 
-**Stays on your machine**
+**Data stored locally**
 
 - Your API keys, in a local `.env.local` file
-- Your Vault — plain Markdown files in a folder you choose
-- Your Archives and application settings
-- There is no account system, and no Aether Library server that your
-  discussions pass through
+- Your Vault is stored as plain Markdown files in a folder you choose
+- Saved discussions and Archives are stored locally
+- Aether Library's application settings are stored locally
 
-**Leaves your machine**
+**Data sent when using AI**
 
-- The question you ask, together with any attached material and relevant
-  context, is sent to the AI providers **you** selected — and only to those
-  providers. That request is subject to their terms and privacy policies, and
-  usage appears on your own account with them.
+- When you start a discussion, your question and any attachments, conversation context,
+  or Vault content required for that request are sent directly to the AI providers you selected.
+- For example, when using OpenAI, Anthropic, or another cloud AI service, the information you send is handled according to that provider's terms of service and privacy policy. API usage and associated costs are also recorded under your own provider account.
 
-Aether Library does not estimate what a discussion costs in money. Check your
-provider's dashboard for that.
+Aether Library does not charge or estimate these API costs. Please refer to your AI provider's dashboard for actual usage and billing information.
 
 ## Development
 
