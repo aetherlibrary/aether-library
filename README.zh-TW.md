@@ -2,10 +2,9 @@
 
 [English](README.md) | 繁體中文
 
-Aether Library 是一個多 AI 工作區，讓不同的 AI 供應商共同回答你的問題。比較多位 AI 學者的觀點，由大智者統整出洞見，並將你的知識保存在存放於自己裝置上的個人 Vault 中。
+Aether Library 是一個多 AI 協作空間，讓你在同一個地方使用不同的 AI，從多個角度討論與回答問題。比較多位 AI 學者的觀點，由大智者統整出結論，並將討論結果保存在存放於自己裝置上的個人 Vault 中。
 
-你的 API 金鑰、你的 Vault 與討論紀錄，都留在你自己的電腦上。沒有帳號，也沒有
-Aether Library 伺服器。
+你的 API 金鑰、Vault 與討論紀錄都儲存在自己的裝置上。Aether Library 採用 local-first 設計，讓你保有對個人資料與知識庫的控制權。
 
 ![Aether Library — Classic Library 場景](docs/assets/aether-library-classic.png)
 
