@@ -1300,6 +1300,7 @@ async function loadStatus() {
     maybeLoadSceneEditor();
     maybeExposeRuntimeDebugHook();
     exposeAppVersionToEditor();
+    renderStartMenuVersion();
 
     // Guarantee a stable identity shape so any consumer can read
     // identity.scholars without an undefined access (the backend normally
@@ -7280,6 +7281,22 @@ let product = null;
 // publicConfig().appVersion.
 function exposeAppVersionToEditor() {
   if (currentConfig?.appVersion) window.__aetherAppVersion = currentConfig.appVersion;
+}
+
+// The Start Menu's version badge. Rendered from publicConfig().appVersion —
+// the SAME package.json-derived value the About dialog reads — rather than a
+// literal in index.html. The literal is how the Start Menu came to display the
+// PREVIOUS release in a freshly bumped build: nothing connected it to the
+// version being shipped, so every release depended on someone remembering to
+// edit it by hand.
+//
+// The element ships empty and stays empty until config arrives, which is the
+// point: a blank badge for one frame is honest, a stale number is not.
+function renderStartMenuVersion() {
+  const el = document.querySelector(".start-version");
+  if (!el) return;
+  const version = currentConfig?.appVersion || "";
+  el.textContent = version ? `v${version}` : "";
 }
 
 async function loadProduct() {

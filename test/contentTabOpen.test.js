@@ -104,7 +104,16 @@ test("nothing outside the Content tab changed", async () => {
   assert.doesNotMatch(resources, /spawn|openPathInOs|child_process/);
   const product = await readSource("../src/services/productConfig.js");
   assert.doesNotMatch(product, /spawn|openPathInOs|child_process/);
-  // No version bump came with it.
+  // This used to read `assert.equal(pkg.version, "1.1.1")`, meaning "no version
+  // bump came with this change". That was a review-time check against ONE
+  // release, and it expired the moment the project legitimately shipped again —
+  // it failed on the intentional 1.2.0 bump while the thing it guarded was
+  // still perfectly intact.
+  //
+  // The durable half of that intent is kept: this dev-UX feature must not
+  // become a second version authority. The number itself belongs to
+  // package.json, and productLinkOwnership.test.js is what holds that
+  // relationship.
   const pkg = JSON.parse(await readSource("../package.json"));
-  assert.equal(pkg.version, "1.1.1");
+  assert.match(pkg.version, /^\d+\.\d+\.\d+/, "package.json still owns a real version");
 });

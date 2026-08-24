@@ -225,10 +225,20 @@ test("the app version still comes from package.json, never from the product file
   // The product config has no version-of-the-app field to compete with it.
   const product = P.sanitizeProductConfig({ appVersion: "9.9.9", version: 1 });
   assert.equal(product.appVersion, undefined);
+  // package.json is the CANONICAL source, asserted as a relationship rather
+  // than against a literal release number. Pinning "1.1.1" here asserted the
+  // project would never ship again — it broke on the intentional 1.2.0 bump
+  // while the contract it was meant to protect had not changed at all.
+  //
+  // This is strictly stronger: it fails if config.js ever stops deriving the
+  // version from package.json, which the old literal could not detect (both
+  // sides would simply have been edited to the same new number).
   const pkg = JSON.parse(await readSource("../package.json"));
   const cfg = await readSource("../src/config.js");
-  assert.match(cfg, /package\.json/);
-  assert.equal(pkg.version, "1.1.1");
+  assert.match(cfg, /JSON\.parse\(fs\.readFileSync\(path\.join\(projectRoot, "package\.json"\), "utf8"\)\)\.version/);
+  const { appVersion } = await import("../src/config.js");
+  assert.equal(appVersion, pkg.version, "the app version must BE package.json's version");
+  assert.match(pkg.version, /^\d+\.\d+\.\d+/, "and package.json must carry a real version");
 });
 
 // ------------------------------------------------------------ the copy

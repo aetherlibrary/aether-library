@@ -71,7 +71,14 @@
       </div>
     </div>
     <!-- Unobtrusive corner details, title-screen style. -->
-    <div class="start-version">v1.1.1</div>
+    <!-- Populated at runtime by renderStartMenuVersion() from
+         publicConfig().appVersion — the same package.json-derived value the
+         About dialog uses. This was a hardcoded release number, and that is
+         exactly how the Start Menu came to display the PREVIOUS version in a
+         freshly bumped build: nothing wired it to the version being shipped.
+         Deliberately EMPTY rather than seeded with a number, so it can never
+         show a stale one. -->
+    <div class="start-version"></div>
     <div class="start-copyright" id="start-copyright">© 2026 Kaz Chang. All rights reserved.</div>
   </div>
 

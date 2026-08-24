@@ -6,7 +6,7 @@ import path from "node:path";
 import fsp from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import express from "express";
-import { config, publicConfig, setSceneTheme } from "./config.js";
+import { appVersion, config, publicConfig, setSceneTheme } from "./config.js";
 import { providers } from "./providers/index.js";
 import {
   runCouncil,
@@ -750,7 +750,12 @@ if (config.devTools) {
 }
 
 app.get("/api/health", (_req, res) => {
-  res.json({ ok: true, app: "aether-library", version: "1.1.1" });
+  // DERIVED, never a literal. This used to be a hardcoded release number and
+  // drifted the moment package.json was bumped without it — the endpoint went
+  // on reporting the PREVIOUS release from a freshly bumped build. appVersion
+  // reads package.json (see config.js), so there is one version in the process
+  // and this endpoint cannot disagree with it again.
+  res.json({ ok: true, app: "aether-library", version: appVersion });
 });
 
 // ---------------------------------------------------------------------
