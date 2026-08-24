@@ -699,11 +699,25 @@ function buildWindow({ frameless }) {
     }
   });
 
+  // A window that is CLOSING is not changing mode.
+  //
+  // macOS leaves fullscreen as part of closing a fullscreen window, so the
+  // handler below would read Cmd+W as the user choosing Windowed and rewrite
+  // the saved mode. The setting would be silently downgraded and the Dock
+  // would reopen windowed — losing the very state the reopen is meant to
+  // restore. Scoped to THIS window, and only to a real close: swapWindow()
+  // destroys its outgoing window instead, which emits no `close`.
+  let closing = false;
+  win.on("close", () => {
+    closing = true;
+  });
+
   // Leaving fullscreen by any route other than Settings (F11 below, or the
   // window manager) must not leave the saved mode claiming "fullscreen" —
   // otherwise Settings would show a mode the window is not in, and the next
   // launch would restore the wrong one.
   win.on("leave-full-screen", () => {
+    if (closing) return;
     if (currentWindowMode === "fullscreen") setWindowMode("windowed");
   });
 
@@ -719,6 +733,7 @@ function buildWindow({ frameless }) {
   // window has ALREADY made the transition, so re-running geometry for it
   // would be re-applying a change that has happened.
   win.on("enter-full-screen", () => {
+    if (closing) return;
     if (currentWindowMode === "fullscreen") return;
     currentWindowMode = "fullscreen";
     writePrefs();
@@ -814,8 +829,41 @@ function installApplicationMenu() {
       { role: "appMenu" },
       // Cmd+C / V / X / A / Z / Shift+Z. The reason this function exists.
       { role: "editMenu" },
-      // Cmd+W (close), Cmd+M (minimize), Zoom.
-      { role: "windowMenu" },
+      {
+        // WHY THIS IS SPELLED OUT AND NOT `{ role: "windowMenu" }`.
+        //
+        // That role does NOT include a Close item on macOS. Verified against
+        // Electron 43.4.0's own role table, where Close is the NON-mac branch:
+        //
+        //   windowmenu: { label: "Window", submenu: [
+        //     { role: "minimize" }, { role: "zoom" },
+        //     ...isMac ? [{ type: "separator" }, { role: "front" }]
+        //              : [{ role: "close" }] ] }
+        //
+        // On macOS Cmd+W is a MENU KEY EQUIVALENT and nothing else, so with no
+        // item bound to it the key was simply inert — which is exactly what a
+        // real M2 reported. Cmd+Q and Cmd+V kept working because those come
+        // from the appMenu and editMenu roles, which do carry their items.
+        //
+        // Electron's DEFAULT menu does get Cmd+W — from `fileMenu`, which on
+        // macOS is exactly one Close item. Replacing the default menu without
+        // fileMenu is what removed the accelerator.
+        //
+        // Adding `fileMenu` back would mean a File menu whose only entry is
+        // Close, in an app with no File concept. Instead the Window menu keeps
+        // everything windowMenu provided and gains the stock `close` ROLE —
+        // Electron supplies its native "Close Window" label, the Cmd+W
+        // accelerator, and its own focused-window resolution, so this is still
+        // a role rather than a hand-rolled click handler.
+        label: "Window",
+        submenu: [
+          { role: "minimize" }, // Cmd+M
+          { role: "zoom" },
+          { role: "close" }, // Cmd+W — closes the focused window, never quits
+          { type: "separator" },
+          { role: "front" },
+        ],
+      },
     ])
   );
 }

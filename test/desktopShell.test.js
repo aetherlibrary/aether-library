@@ -372,12 +372,17 @@ test("macOS gets the menu roles its keyboard shortcuts depend on; Windows still 
   const code = codeOnly(main);
   // Windows behaviour is unchanged: no menu at all.
   assert.match(code, /if \(process\.platform !== "darwin"\) \{\s*Menu\.setApplicationMenu\(null\);/);
-  // macOS binds Cmd+C/V/X/A/Z, Cmd+Q, Cmd+W and Cmd+M through these roles.
-  // Without them a null menu leaves every one of those keys dead — including
-  // paste, which is how an API key gets into AI Config.
+  // macOS binds Cmd+C/V/X/A/Z and Cmd+Q through these roles. Without them a
+  // null menu leaves every one of those keys dead — including paste, which is
+  // how an API key gets into AI Config.
   assert.match(code, /role: "appMenu"/);
   assert.match(code, /role: "editMenu"/);
-  assert.match(code, /role: "windowMenu"/);
+  // Cmd+W is NOT among them, and this assertion used to claim it was: it
+  // required `role: "windowMenu"`, which on macOS omits Close entirely. That
+  // made the test enforce the very bug it looked like it was guarding. The
+  // Window menu is now spelled out — see the macOS Cmd+W section below.
+  assert.match(code, /label: "Window"/);
+  assert.match(code, /role: "close"/);
   // Still no View menu, so Reload and Toggle Developer Tools stay off the
   // shipped build exactly as they are on Windows.
   assert.doesNotMatch(code, /role: "viewMenu"/);
@@ -753,8 +758,12 @@ test("entering fullscreen outside Settings keeps the recorded mode truthful", ()
   // Deliberately NOT setWindowMode(): the window has already made the
   // transition, so re-running geometry would re-apply a change that happened.
   assert.doesNotMatch(handler.slice(0, handler.indexOf("});")), /setWindowMode/);
-  // The existing leave-full-screen handler is untouched.
-  assert.match(build, /win\.on\("leave-full-screen", \(\) => \{\s*if \(currentWindowMode === "fullscreen"\) setWindowMode\("windowed"\);/);
+  // The leave-full-screen handler still syncs the mode back — now behind the
+  // close guard, so a window being CLOSED is not read as a mode change.
+  assert.match(
+    build,
+    /win\.on\("leave-full-screen", \(\) => \{\s*if \(closing\) return;\s*if \(currentWindowMode === "fullscreen"\) setWindowMode\("windowed"\);/
+  );
 });
 
 test("a swapped-in window re-asserts fullscreen after it is shown", () => {
@@ -836,6 +845,158 @@ test("macOS lifecycle and the always-on-top rescue are untouched by the fix", ()
   // rectangle Windows' z-order reshuffle moved.
   assert.match(main, /win\.setAlwaysOnTop\(alwaysOnTop\);/);
   assert.match(main, /if \(after && \(after\.x !== before\.x \|\| after\.y !== before\.y\)\) win\.setBounds\(before\);/);
+});
+
+// -------------------------------------------------------- macOS Cmd+W
+//
+// THE BUG THESE PIN. In the packaged M2 app Cmd+W did nothing, while Cmd+Q and
+// Cmd+V worked and every other Mac application closed its window normally.
+//
+// The cause is the menu template, not the lifecycle. Electron's `windowMenu`
+// ROLE omits Close on macOS — verified against the role table compiled into
+// Electron 43.4.0 itself, where the Close item is the NON-mac branch:
+//
+//   windowmenu: { label: "Window", submenu: [
+//     { role: "minimize" }, { role: "zoom" },
+//     ...isMac ? [{ type: "separator" }, { role: "front" }]
+//              : [{ role: "close" }] ] }
+//
+// On macOS Cmd+W is a menu key equivalent and nothing else, so with no item
+// bound to it the key was inert. It is invisible from Windows precisely
+// because the role DOES carry Close there — building `{ role: "windowMenu" }`
+// with real Electron on Windows yields ["minimize","zoom","close"].
+//
+// The whole reopen half of the contract already worked and must stay working.
+
+// Extracts the template array literal passed to Menu.buildFromTemplate(),
+// matching brackets rather than guessing at an end marker — the template
+// contains both comments and nested brackets.
+function macMenuTemplateSource() {
+  const fn = main.slice(main.indexOf("function installApplicationMenu"));
+  const start = fn.indexOf("[", fn.indexOf("Menu.buildFromTemplate("));
+  let depth = 0, inLine = false, inBlock = false, inStr = null;
+  for (let i = start; i < fn.length; i++) {
+    const c = fn[i], n = fn[i + 1];
+    if (inLine) { if (c === "\n") inLine = false; continue; }
+    if (inBlock) { if (c === "*" && n === "/") { inBlock = false; i++; } continue; }
+    if (inStr) { if (c === "\\") { i++; continue; } if (c === inStr) inStr = null; continue; }
+    if (c === "/" && n === "/") { inLine = true; i++; continue; }
+    if (c === "/" && n === "*") { inBlock = true; i++; continue; }
+    if (c === '"' || c === "'" || c === "`") { inStr = c; continue; }
+    if (c === "[") depth++;
+    else if (c === "]") { depth--; if (depth === 0) return fn.slice(start, i + 1); }
+  }
+  throw new Error("menu template not found");
+}
+const macMenuTemplate = new Function(`return ${macMenuTemplateSource()}`)();
+
+test("the macOS menu contains a real Cmd+W close-window path", () => {
+  const windowMenu = macMenuTemplate.find((t) => t.label === "Window");
+  assert.ok(windowMenu, "there is an explicit Window menu");
+  const roles = windowMenu.submenu.map((i) => i.role || i.type);
+  assert.ok(roles.includes("close"), "the Close role is what binds Cmd+W on macOS");
+
+  // It must NOT be the bare role that omits Close on macOS.
+  assert.ok(
+    !macMenuTemplate.some((t) => t.role === "windowMenu"),
+    "`role: windowMenu` alone does not provide Close on macOS"
+  );
+  // Everything the role did provide is still there.
+  for (const kept of ["minimize", "zoom", "front"]) {
+    assert.ok(roles.includes(kept), kept + " must survive spelling the menu out");
+  }
+});
+
+test("Cmd+W is a stock role, not a hand-rolled handler or a renderer keybinding", () => {
+  const windowMenu = macMenuTemplate.find((t) => t.label === "Window");
+  const closeItem = windowMenu.submenu.find((i) => i.role === "close");
+  // Electron supplies the label, the CommandOrControl+W accelerator and the
+  // focused-window resolution. Nothing here reimplements any of that.
+  assert.equal(typeof closeItem.click, "undefined", "no custom click handler");
+  assert.equal(typeof closeItem.accelerator, "undefined", "the role carries its own accelerator");
+  for (const item of windowMenu.submenu) {
+    assert.equal(typeof item.click, "undefined", "the Window menu is roles only");
+  }
+
+  // And the renderer must not intercept Meta+W: before-input-event handles
+  // F11 and nothing else, so Cmd+W reaches the menu as macOS intends.
+  const input = main.slice(main.indexOf('win.webContents.on("before-input-event"'));
+  const handler = input.slice(0, input.indexOf("});"));
+  assert.match(handler, /input\.key !== "F11"\) return;/);
+  assert.doesNotMatch(handler, /"w"|"W"|meta|Meta/, "no Meta+W interception in the renderer path");
+});
+
+test("Cmd+W closes a window and never quits the application", () => {
+  const windowMenu = macMenuTemplate.find((t) => t.label === "Window");
+  const roles = windowMenu.submenu.map((i) => i.role);
+  assert.ok(!roles.includes("quit"), "the Window menu must not carry quit");
+  // Quit stays exactly where macOS expects it — the app menu, via appMenu.
+  assert.ok(macMenuTemplate.some((t) => t.role === "appMenu"), "Cmd+Q still comes from appMenu");
+  // Cmd+C/V/X/A/Z likewise stay with editMenu.
+  assert.ok(macMenuTemplate.some((t) => t.role === "editMenu"), "Cmd+V still comes from editMenu");
+
+  // Nothing in the shell reaches app.quit() from a window close on macOS.
+  // PUBLIC checks the platform inline where DEV factored out an `isMac` const.
+  const lifecycle = main.slice(main.indexOf('app.on("window-all-closed"'), main.indexOf("app.whenReady()"));
+  assert.match(lifecycle, /if \(recreating\) return;/);
+  assert.match(lifecycle, /if \(process\.platform === "darwin"\) return;/, "macOS must fall out before app.quit()");
+  const quitAt = lifecycle.indexOf("app.quit();");
+  const macGuardAt = lifecycle.indexOf('if (process.platform === "darwin") return;');
+  assert.ok(macGuardAt !== -1 && macGuardAt < quitAt, "the macOS guard precedes the quit");
+});
+
+test("the Dock reopens a window, and a stale reference cannot block it", () => {
+  // PUBLIC's activate guards on the live window LIST rather than focusing an
+  // existing window the way DEV does. Both satisfy the contract — one window,
+  // never two — and PUBLIC's is deliberately left as it is.
+  const activate = main.slice(main.indexOf('app.on("activate"'), main.indexOf("app.whenReady()"));
+  assert.match(activate, /if \(BrowserWindow\.getAllWindows\(\)\.length > 0\) return;/, "a live window is never duplicated");
+  // A closed one is replaced through the SAME builder — never a second copy of
+  // the build logic, and never a second Express server (the server is imported
+  // once in start(), and buildWindow only loads the warm origin).
+  assert.match(activate, /mainWindow = buildWindow\(\{ frameless: currentFrameless \}\);/);
+  assert.doesNotMatch(activate, /new BrowserWindow|import\(|server\.js/);
+  // The reference is cleared on close, so it cannot go stale — and
+  // getAllWindows() is authoritative regardless of what mainWindow holds.
+  assert.match(main, /win\.on\("closed", \(\) => \{\s*if \(mainWindow === win\) mainWindow = null;/);
+  // Guarded on the origin, so a Dock click during startup cannot race it.
+  assert.match(activate, /if \(!appOrigin \|\| recreating\) return;/);
+  // Reopening rebuilds at the CURRENT mode, so Borderless and Fullscreen come
+  // back as themselves rather than as a plain window.
+  assert.match(main, /function buildWindow\(\{ frameless \}\)/);
+});
+
+test("closing a fullscreen window does not rewrite the saved mode", () => {
+  // macOS leaves fullscreen as part of closing a fullscreen window. Without
+  // this guard that reads as the user choosing Windowed, so Cmd+W would
+  // silently downgrade the setting and the Dock would reopen windowed.
+  const build = main.slice(main.indexOf("function buildWindow("), main.indexOf("function wireWindow("));
+  assert.match(build, /let closing = false;/);
+  assert.match(build, /win\.on\("close", \(\) => \{\s*closing = true;\s*\}\);/);
+  const leave = build.slice(build.indexOf('win.on("leave-full-screen"'));
+  assert.match(leave.slice(0, 200), /if \(closing\) return;/);
+  const enter = build.slice(build.indexOf('win.on("enter-full-screen"'));
+  assert.match(enter.slice(0, 200), /if \(closing\) return;/);
+  // Borderless placement is still captured on the way out.
+  assert.match(build, /win\.on\("close", \(\) => rememberBorderlessBounds\(win\)\);/);
+  // swapWindow() destroys its outgoing window, which emits no `close` — so a
+  // frame-state recreation is never mistaken for a user closing the window.
+  assert.match(main, /if \(old && !old\.isDestroyed\(\)\) old\.destroy\(\);/);
+});
+
+test("Windows keeps no application menu at all", () => {
+  // The whole Cmd+W fix is inside the macOS branch. Windows still gets a null
+  // menu, which is what keeps Ctrl+R and the devtools toggle out of a shipped
+  // build — and is why the accelerator work cannot regress it.
+  // Ends at the `start` banner: PUBLIC orders its file differently from DEV,
+  // with the externals section ABOVE the menu rather than below it, so DEV's
+  // end anchor would slice backwards and match nothing.
+  const fn = main.slice(main.indexOf("function installApplicationMenu"), main.indexOf("// ------------------------------------------------------------------ start"));
+  assert.match(fn, /if \(process\.platform !== "darwin"\) \{\s*Menu\.setApplicationMenu\(null\);\s*return;\s*\}/);
+  // Installed once the app is ready, before the first window exists.
+  const start = main.slice(main.indexOf("async function start()"), main.indexOf("prefsPath = path.join"));
+  assert.match(start, /installApplicationMenu\(\);/);
+  assert.match(main, /app\.whenReady\(\)\.then\(start\)/, "menu installation happens after ready");
 });
 
 test("window recreation cannot restart the tutorial, because the origin does not move", () => {
