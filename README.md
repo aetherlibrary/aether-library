@@ -16,8 +16,10 @@ Most AI tools give you a single model's answer in a chat box. Aether Library is 
 You start a discussion by opening Aetherom, the book on the reading-room table. Choose how your question is explored: a full Council where multiple Scholars respond independently, or a single Mentor for focused guidance. Compare responses side by side and save meaningful insights into your Vault as plain Markdown files.
 
 The library itself is not decoration. Scenes, characters and the reading room
-are part of how the product presents its work, and the current MVP ships with
-the **Classic Library**.
+are part of how the product presents its work. For now, your journey begins in **Classic Library**.
+
+Aether Library goes beyond the traditional conversational AI experience. We want you to explore spaces, interact with characters, and think through ideas together with AI.
+Over time, more interactive and game-like features will bring the library to life, gradually transforming it from an AI workspace into a living world you can explore.
 
 ## Features
 
