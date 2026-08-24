@@ -47,13 +47,15 @@ the Grand Sage, independent of that character's identity. Currently supported:
 **Vault** — Your own local Markdown knowledge folder. Saved discussions are
 written as ordinary `.md` files you can read, search, edit or move with any
 tool. An optional integration can also export saved discussions into an
-existing Obsidian vault; the built-in Vault remains primary and Obsidian is
-never required.
+existing Obsidian vault; the built-in Vault remains the primary system, 
+and installing Obsidian is not required.
 
-**Archives** — Every completed discussion is recorded locally, so you can
-reopen it later. A previous discussion can also be continued as a new one,
-carrying the earlier conversation forward as context, and related discussions
-are grouped together as a thread.
+**Archives** — Every completed discussion is recorded locally, so you can reopen 
+it and continue the conversation later. Once saved, previous discussions remain available even 
+after closing or restarting Aether Library. You can continue any past discussion 
+directly from the Archives, and Aether Library will provide the previous conversation as context 
+to your selected AI, allowing the discussion to continue naturally and form a complete thread that
+you can revisit at any time.
 
 **Attachments** — Attach files, PDFs, images or text before asking, so the
 Scholars can work from your own material. You can drag and drop files onto the
@@ -63,9 +65,9 @@ composer, or paste an image straight from the clipboard.
 settings, AI configuration, the Vault, Aetherom, the two modes, attachments
 and saving your work. It can be replayed at any time.
 
-**Two languages** — The interface is available in English and Traditional
-Chinese, and the language the Grand Sage replies in is configured separately
-from the interface language.
+**Two languages** — The interface is available in English and Traditional Chinese, 
+while the language used for the Grand Sage's responses can be configured separately 
+from the interface language. By default, the AI responds in the language you use when asking your question.
 
 ## Getting Started
 
